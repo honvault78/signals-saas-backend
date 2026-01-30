@@ -37,4 +37,4 @@ cryptography>=41.0.0
 
 sqlalchemy[asyncio]
 asyncpg
-pydantic-settings
+pydantic-settingspython-multipart 
