@@ -62,15 +62,30 @@ def detect_date_column(df: pd.DataFrame) -> Optional[str]:
     if pd.api.types.is_datetime64_any_dtype(col_data):
         return first_col
     
-    # Try to parse as dates (try both US and European formats)
-    if col_data.dtype == object or col_data.dtype == str:
-        try:
-            # Try US format first (MM/DD/YYYY), then default
-            for dayfirst in [False, True]:
-                parsed = pd.to_datetime(col_data, errors='coerce', dayfirst=dayfirst)
+    # Try to parse as dates using explicit formats (pandas 3.0+ compatible)
+    if pd.api.types.is_string_dtype(col_data) or col_data.dtype == object:
+        date_formats = [
+            '%Y-%m-%d',    # 2025-10-15
+            '%m/%d/%Y',    # 10/15/2025
+            '%d/%m/%Y',    # 15/10/2025
+            '%Y/%m/%d',    # 2025/10/15
+            '%d-%m-%Y',    # 15-10-2025
+            '%m-%d-%Y',    # 10-15-2025
+        ]
+        for fmt in date_formats:
+            try:
+                parsed = pd.to_datetime(col_data, errors='coerce', format=fmt)
                 valid_ratio = parsed.notna().sum() / len(parsed)
                 if valid_ratio > 0.9:  # 90%+ parseable as dates
                     return first_col
+            except Exception:
+                continue
+        # Fallback: let pandas try mixed formats
+        try:
+            parsed = pd.to_datetime(col_data, errors='coerce', format='mixed', dayfirst=True)
+            valid_ratio = parsed.notna().sum() / len(parsed)
+            if valid_ratio > 0.9:
+                return first_col
         except Exception:
             pass
     
@@ -177,14 +192,43 @@ def parse_uploaded_file(
     frequency = None
     
     if date_col:
-        # Parse dates - try US format (MM/DD/YYYY) first, then default
-        parsed_us = pd.to_datetime(df[date_col], errors='coerce', dayfirst=False)
-        parsed_eu = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
-        # Pick whichever format parsed more dates successfully
-        if parsed_us.notna().sum() >= parsed_eu.notna().sum():
-            df[date_col] = parsed_us
+        # Parse dates using explicit formats (pandas 3.0+ compatible)
+        best_parsed = None
+        best_count = 0
+        
+        date_formats = [
+            '%Y-%m-%d',    # 2025-10-15
+            '%m/%d/%Y',    # 10/15/2025
+            '%d/%m/%Y',    # 15/10/2025
+            '%Y/%m/%d',    # 2025/10/15
+            '%d-%m-%Y',    # 15-10-2025
+            '%m-%d-%Y',    # 10-15-2025
+        ]
+        for fmt in date_formats:
+            try:
+                parsed = pd.to_datetime(df[date_col], errors='coerce', format=fmt)
+                valid_count = parsed.notna().sum()
+                if valid_count > best_count:
+                    best_count = valid_count
+                    best_parsed = parsed
+            except Exception:
+                continue
+        
+        # Fallback: mixed format parsing
+        if best_parsed is None or best_count < len(df) * 0.9:
+            try:
+                parsed = pd.to_datetime(df[date_col], errors='coerce', format='mixed', dayfirst=True)
+                valid_count = parsed.notna().sum()
+                if valid_count > best_count:
+                    best_count = valid_count
+                    best_parsed = parsed
+            except Exception:
+                pass
+        
+        if best_parsed is not None:
+            df[date_col] = best_parsed
         else:
-            df[date_col] = parsed_eu
+            df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
         
         # Check for parsing failures
         null_dates = df[date_col].isna().sum()
