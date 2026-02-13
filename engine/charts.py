@@ -146,19 +146,21 @@ def create_regime_chart(
     ax1.grid(True, alpha=0.3)
     ax1.axhline(y=1, color='black', linestyle='--', alpha=0.3)
     
-    # Regime legend
+    # Regime legend - use same alpha as chart shading (0.3) for accurate color match
     regime_legend = [
-        Patch(facecolor='lightgreen', alpha=0.5, edgecolor='darkgreen', linewidth=1, label='RANGING'),
-        Patch(facecolor='green', alpha=0.5, edgecolor='darkgreen', linewidth=1, label='TRENDING UP'),
-        Patch(facecolor='red', alpha=0.5, edgecolor='darkred', linewidth=1, label='TRENDING DOWN'),
-        Patch(facecolor='lime', alpha=0.5, edgecolor='green', linewidth=1, label='BREAKOUT'),
-        Patch(facecolor='salmon', alpha=0.5, edgecolor='red', linewidth=1, label='BREAKDOWN'),
-        Patch(facecolor='lightblue', alpha=0.5, edgecolor='blue', linewidth=1, label='ACCUMULATION'),
-        Patch(facecolor='orange', alpha=0.5, edgecolor='darkorange', linewidth=1, label='DISTRIBUTION'),
+        Patch(facecolor='lightgreen', alpha=0.3, edgecolor='darkgreen', linewidth=1, label='RANGING'),
+        Patch(facecolor='green', alpha=0.3, edgecolor='darkgreen', linewidth=1, label='TRENDING UP'),
+        Patch(facecolor='red', alpha=0.3, edgecolor='darkred', linewidth=1, label='TRENDING DOWN'),
+        Patch(facecolor='lime', alpha=0.3, edgecolor='green', linewidth=1, label='BREAKOUT'),
+        Patch(facecolor='salmon', alpha=0.3, edgecolor='red', linewidth=1, label='BREAKDOWN'),
+        Patch(facecolor='lightblue', alpha=0.3, edgecolor='blue', linewidth=1, label='ACCUMULATION'),
+        Patch(facecolor='orange', alpha=0.3, edgecolor='darkorange', linewidth=1, label='DISTRIBUTION'),
     ]
-    ax1.legend(handles=regime_legend, loc='lower left', fontsize=7,
+    legend_obj = ax1.legend(handles=regime_legend, loc='lower left', fontsize=7,
                title='Regime Legend', title_fontsize=9, ncol=2,
                framealpha=0.9, fancybox=True)
+    # Set legend background to match chart so blended colors look identical
+    legend_obj.get_frame().set_facecolor(BACKGROUND_COLOR)
     
     # Panel 2: RSI
     ax2 = axes[1]

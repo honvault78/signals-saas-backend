@@ -173,6 +173,19 @@ def run_rolling_regime_analysis(
     prices = cumulative.values
     dummy_volume = np.ones(len(prices)) * 1000000  # Volume not critical for spreads
     
+    # Adjust window if data is too short
+    if len(prices) <= window:
+        window = max(20, len(prices) // 2)
+        # Re-create detector with adjusted window
+        detector = MarketRegimeDetector(
+            lookback_periods=window,
+            min_periods=min(20, window // 2),
+            volatility_window=12,
+            trend_window=12,
+            asset_type="equity"
+        )
+        logger.info(f"Adjusted regime window to {window} (data has {len(prices)} points)")
+    
     for i in range(window, len(prices)):
         price_window = prices[i-window:i+1]
         vol_window = dummy_volume[i-window:i+1]
@@ -197,6 +210,12 @@ def run_rolling_regime_analysis(
             'transition_prob': min(100, analysis.transition_probability),
             'regime_strength': analysis.regime_strength,
         })
+    
+    if not results:
+        raise ValueError(
+            f"Insufficient data for regime analysis. "
+            f"Need more than {window} observations, got {len(prices)}."
+        )
     
     df = pd.DataFrame(results).set_index('date')
     
