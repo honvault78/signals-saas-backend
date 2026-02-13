@@ -62,13 +62,15 @@ def detect_date_column(df: pd.DataFrame) -> Optional[str]:
     if pd.api.types.is_datetime64_any_dtype(col_data):
         return first_col
     
-    # Try to parse as dates
+    # Try to parse as dates (try both US and European formats)
     if col_data.dtype == object or col_data.dtype == str:
         try:
-            parsed = pd.to_datetime(col_data, errors='coerce')
-            valid_ratio = parsed.notna().sum() / len(parsed)
-            if valid_ratio > 0.9:  # 90%+ parseable as dates
-                return first_col
+            # Try US format first (MM/DD/YYYY), then default
+            for dayfirst in [False, True]:
+                parsed = pd.to_datetime(col_data, errors='coerce', dayfirst=dayfirst)
+                valid_ratio = parsed.notna().sum() / len(parsed)
+                if valid_ratio > 0.9:  # 90%+ parseable as dates
+                    return first_col
         except Exception:
             pass
     
@@ -175,8 +177,14 @@ def parse_uploaded_file(
     frequency = None
     
     if date_col:
-        # Parse dates and set as index
-        df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+        # Parse dates - try US format (MM/DD/YYYY) first, then default
+        parsed_us = pd.to_datetime(df[date_col], errors='coerce', dayfirst=False)
+        parsed_eu = pd.to_datetime(df[date_col], errors='coerce', dayfirst=True)
+        # Pick whichever format parsed more dates successfully
+        if parsed_us.notna().sum() >= parsed_eu.notna().sum():
+            df[date_col] = parsed_us
+        else:
+            df[date_col] = parsed_eu
         
         # Check for parsing failures
         null_dates = df[date_col].isna().sum()
