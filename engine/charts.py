@@ -158,7 +158,7 @@ def create_regime_chart(
     ]
     legend_obj = ax1.legend(handles=regime_legend, loc='lower left', fontsize=7,
                title='Regime Legend', title_fontsize=9, ncol=2,
-               framealpha=0.9, fancybox=True)
+               framealpha=1.0, fancybox=True)
     # Set legend background to match chart so blended colors look identical
     legend_obj.get_frame().set_facecolor(BACKGROUND_COLOR)
     

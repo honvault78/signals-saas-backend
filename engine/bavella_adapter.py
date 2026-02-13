@@ -108,6 +108,11 @@ class ValidityOutput:
     analogues: List[HistoricalAnalogue] = field(default_factory=list)
     failure_probability: Optional[float] = None  # 0.0-1.0
     
+    # DIAGNOSTIC: Which engine path produced this result
+    engine_path: str = "unknown"  # "bavella_v2" | "fallback_heuristic" | "error"
+    engine_version: str = "2.2.1"  # Track detector versions
+    active_fm_codes: List[str] = field(default_factory=list)  # Which FMs actually ran
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to JSON-serializable dict."""
         return {
@@ -133,7 +138,13 @@ class ValidityOutput:
             "attribution": {
                 "competing_causes": [asdict(c) for c in self.competing_causes],
                 "counterfactuals": [asdict(c) for c in self.counterfactuals],
-            }
+            },
+            # DIAGNOSTIC: Which engine produced this result
+            "engine": {
+                "path": self.engine_path,
+                "version": self.engine_version,
+                "active_fm_codes": self.active_fm_codes,
+            },
         }
 
 
@@ -202,11 +213,26 @@ class BavellaAnalyzer:
             self._series_analyzer = SeriesAnalyzer()
             self._pattern_matcher = EpisodePatternMatcher()
             self._initialized = True
-            logger.info("Bavella v2.2 initialized successfully")
+            
+            # Verify detectors are wired
+            detector_count = sum(1 for attr in dir(self._series_analyzer) 
+                               if attr.startswith('_fm') and attr.endswith('_detector'))
+            logger.info(
+                f"Bavella v2.2 initialized: {detector_count} detectors wired | "
+                f"SeriesAnalyzer from {SeriesAnalyzer.__module__}"
+            )
             
         except ImportError as e:
-            logger.warning(f"Bavella v2.2 not available, using fallback: {e}")
-            self._initialized = True  # Mark as initialized to avoid repeated attempts
+            import traceback
+            tb = traceback.format_exc()
+            logger.error(
+                f"Bavella v2.2 IMPORT FAILED — will use fallback heuristics.\n"
+                f"Error: {e}\n{tb}\n"
+                f"HINT: Clear __pycache__ directories and restart:\n"
+                f"  find . -type d -name __pycache__ -exec rm -rf {{}} +\n"
+                f"  find . -name '*.pyc' -delete"
+            )
+            self._initialized = True  # Mark to avoid repeated attempts
     
     def analyze(
         self,
@@ -237,16 +263,22 @@ class BavellaAnalyzer:
         
         # Use fallback if Bavella not available
         if self._series_analyzer is None:
-            return self._analyze_fallback(
+            logger.warning(
+                "VALIDITY ENGINE PATH: fallback_heuristic "
+                "(SeriesAnalyzer failed to initialize — check imports)"
+            )
+            result = self._analyze_fallback(
                 returns=returns,
                 adf_pvalue=adf_pvalue,
                 halflife=halflife,
                 z_score=z_score,
                 regime=regime,
             )
+            result.engine_path = "fallback_heuristic"
+            return result
         
         try:
-            return self._analyze_with_bavella(
+            result = self._analyze_with_bavella(
                 returns=returns,
                 series_name=series_name,
                 owner_id=owner_id,
@@ -255,15 +287,34 @@ class BavellaAnalyzer:
                 z_score=z_score,
                 regime=regime,
             )
+            result.engine_path = "bavella_v2"
+            logger.info(
+                f"VALIDITY ENGINE PATH: bavella_v2 | "
+                f"score={result.score} state={result.state} | "
+                f"active_fms={result.active_fm_codes}"
+            )
+            return result
         except Exception as e:
-            logger.error(f"Bavella analysis failed, using fallback: {e}")
-            return self._analyze_fallback(
+            import traceback
+            tb = traceback.format_exc()
+            logger.error(
+                f"VALIDITY ENGINE PATH: fallback_heuristic "
+                f"(bavella_v2 FAILED: {e})\n{tb}"
+            )
+            result = self._analyze_fallback(
                 returns=returns,
                 adf_pvalue=adf_pvalue,
                 halflife=halflife,
                 z_score=z_score,
                 regime=regime,
             )
+            result.engine_path = "fallback_heuristic"
+            result.assessment_note = (
+                f"⚠️ Full Bavella engine failed ({type(e).__name__}: {e}). "
+                f"Using simplified heuristic analysis. "
+                f"Original note: {result.assessment_note}"
+            )
+            return result
     
     def _analyze_with_bavella(
         self,
@@ -278,6 +329,18 @@ class BavellaAnalyzer:
         """Run full Bavella v2.2 analysis."""
         from datetime import datetime, timedelta
         from engine.bavella.series_analyzer import SeriesAnalysisRequest, SeriesType
+        
+        def _conf_to_float(conf_obj) -> float:
+            """Extract float (0-1) from DetectionConfidence or plain float."""
+            if conf_obj is None:
+                return 0.7
+            if isinstance(conf_obj, (int, float)):
+                return float(conf_obj) if conf_obj <= 1.0 else float(conf_obj) / 100.0
+            # DetectionConfidence dataclass — .overall is 0-100
+            overall = getattr(conf_obj, 'overall', None)
+            if overall is not None:
+                return float(overall) / 100.0 if overall > 1.0 else float(overall)
+            return 0.7
         
         # Convert pandas Series to lists for the request
         if hasattr(returns.index, 'tolist'):
@@ -397,7 +460,7 @@ class BavellaAnalyzer:
             for fm_obj in active_fms:
                 if fm_obj.failure_mode == root_cause_fm:
                     root_raw_severity = int(fm_obj.severity)
-                    root_fm_confidence = getattr(fm_obj, 'confidence', 0.7)
+                    root_fm_confidence = _conf_to_float(getattr(fm_obj, 'confidence', 0.7))
                     break
             
             # SEVERITY-CONFIDENCE COUPLING (belt-and-suspenders)
@@ -434,7 +497,7 @@ class BavellaAnalyzer:
             
             # Get raw severity and confidence
             raw_sev = fm_obj.severity
-            fm_conf = getattr(fm_obj, 'confidence', 0.7)
+            fm_conf = _conf_to_float(getattr(fm_obj, 'confidence', 0.7))
             
             # Apply severity-confidence coupling
             if fm_conf < 0.5:
@@ -523,6 +586,12 @@ class BavellaAnalyzer:
         
         # Note: confidence was already computed at the top of this method
         
+        # Track which FMs actually ran for diagnostics
+        active_fm_codes = [
+            FM_CODE_MAP.get(fm.failure_mode.name, fm.failure_mode.name[:3])
+            for fm in active_fms
+        ]
+        
         return ValidityOutput(
             state=state,
             score=int(validity_score),
@@ -538,6 +607,8 @@ class BavellaAnalyzer:
             counterfactuals=counterfactuals,
             analogues=analogues,
             failure_probability=failure_prob,
+            engine_path="bavella_v2",
+            active_fm_codes=active_fm_codes,
         )
     
     def _analyze_fallback(
@@ -577,6 +648,7 @@ class BavellaAnalyzer:
                 counterfactuals=[],
                 analogues=[],
                 failure_probability=None,
+                engine_path="fallback_heuristic",
             )
         
         # =================================================================
@@ -833,6 +905,9 @@ class BavellaAnalyzer:
         
         # NOTE: confidence was already calculated above
         
+        # Track which FMs were elevated for diagnostics
+        fallback_active_fms = [inv[0] for inv in all_invariants if inv[2] > 0.1]
+        
         return ValidityOutput(
             state=state,
             score=int(validity_score),
@@ -848,6 +923,8 @@ class BavellaAnalyzer:
             counterfactuals=counterfactuals,
             analogues=analogues,
             failure_probability=failure_prob,
+            engine_path="fallback_heuristic",
+            active_fm_codes=fallback_active_fms,
         )
     
     def _find_similar_periods(
