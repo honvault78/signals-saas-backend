@@ -155,9 +155,12 @@ def create_regime_chart(
         Patch(facecolor='salmon', alpha=0.3, edgecolor='red', linewidth=1, label='BREAKDOWN'),
         Patch(facecolor='lightblue', alpha=0.3, edgecolor='blue', linewidth=1, label='ACCUMULATION'),
         Patch(facecolor='orange', alpha=0.3, edgecolor='darkorange', linewidth=1, label='DISTRIBUTION'),
+        Patch(facecolor='yellow', alpha=0.3, edgecolor='goldenrod', linewidth=1, label='VOL EXPANSION'),
+        Patch(facecolor='lightyellow', alpha=0.3, edgecolor='gold', linewidth=1, label='VOL CONTRACTION'),
+        Patch(facecolor='lightgray', alpha=0.3, edgecolor='gray', linewidth=1, label='UNCERTAIN'),
     ]
-    legend_obj = ax1.legend(handles=regime_legend, loc='lower left', fontsize=7,
-               title='Regime Legend', title_fontsize=9, ncol=2,
+    legend_obj = ax1.legend(handles=regime_legend, loc='lower left', fontsize=6,
+               title='Regime Legend', title_fontsize=8, ncol=2,
                framealpha=1.0, fancybox=True)
     # Set legend background to match chart so blended colors look identical
     legend_obj.get_frame().set_facecolor(BACKGROUND_COLOR)
