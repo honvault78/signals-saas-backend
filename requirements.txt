@@ -40,4 +40,4 @@ asyncpg
 pydantic-settings
 python-multipart 
 python-multipart 
-"networkx" 
+networkx 
