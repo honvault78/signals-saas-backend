@@ -239,17 +239,7 @@ class ValidityDetector:
         if fm7_result:
             active_fms.append(fm7_result)
         
-        # Calculate validity score
-        fm_severities = [(fm.failure_mode, fm.severity) for fm in active_fms]
-        validity_score = calculate_validity_score(fm_severities)
-        validity_state = ValidityState.from_score(validity_score)
-        
-        # Determine primary FM (highest severity)
-        primary_fm = None
-        if active_fms:
-            primary_fm = max(active_fms, key=lambda x: x.severity)
-        
-        # Overall confidence (average of FM confidences, weighted by severity)
+        # Calculate confidence FIRST (needed by scorer)
         if active_fms:
             total_weight = sum(fm.severity for fm in active_fms)
             if total_weight > 0:
@@ -260,6 +250,16 @@ class ValidityDetector:
                 overall_confidence = 0.8
         else:
             overall_confidence = 0.9  # High confidence in validity when no FMs
+        
+        # Calculate validity score (v2.2.1: with co-firing + confidence penalty)
+        fm_severities = [(fm.failure_mode, fm.severity) for fm in active_fms]
+        validity_score = calculate_validity_score(fm_severities, confidence=overall_confidence)
+        validity_state = ValidityState.from_score(validity_score)
+        
+        # Determine primary FM (highest severity)
+        primary_fm = None
+        if active_fms:
+            primary_fm = max(active_fms, key=lambda x: x.severity)
         
         return DetectorResult(
             validity_score=validity_score,

@@ -53,43 +53,43 @@ FM_INFO = {
     FailureMode.FM1_VARIANCE_REGIME: {
         "name": "Variance Regime Shift",
         "description": "Volatility has changed regime — historical vol assumptions invalid",
-        "severity_weight": 1.0,
+        "severity_weight": 0.18,
         "typically_reversible": True,
     },
     FailureMode.FM2_MEAN_DRIFT: {
         "name": "Mean Drift",
         "description": "Fair value is drifting — mean reversion targets compromised",
-        "severity_weight": 0.8,
+        "severity_weight": 0.18,
         "typically_reversible": True,
     },
     FailureMode.FM3_CORRELATION_FLIP: {
         "name": "Correlation Flip",
         "description": "Correlation structure changed — hedge ratios need recalibration",
-        "severity_weight": 1.2,
+        "severity_weight": 0.08,
         "typically_reversible": True,
     },
     FailureMode.FM4_STRUCTURAL_BREAK: {
         "name": "Structural Break",
         "description": "Permanent structural change — historical relationship invalidated",
-        "severity_weight": 2.0,
+        "severity_weight": 0.20,
         "typically_reversible": False,
     },
     FailureMode.FM5_STATIONARITY_LOSS: {
         "name": "Stationarity Loss",
         "description": "Non-stationary behavior — mean reversion assumptions violated",
-        "severity_weight": 1.5,
+        "severity_weight": 0.15,
         "typically_reversible": True,
     },
     FailureMode.FM6_TAIL_EVENT: {
         "name": "Tail Event",
         "description": "Extreme outlier — statistical models temporarily unreliable",
-        "severity_weight": 0.6,
+        "severity_weight": 0.15,
         "typically_reversible": True,
     },
     FailureMode.FM7_DEPENDENCY_BREAK: {
         "name": "Dependency Break",
         "description": "Dependency relationship broke — spread dynamics unreliable",
-        "severity_weight": 1.8,
+        "severity_weight": 0.06,
         "typically_reversible": True,
     },
 }
@@ -198,10 +198,19 @@ class ValidityVerdict:
     def fm_count(self) -> int:
         return len(self.active_fms)
 
+# =============================================================================
+# SEVERITY CALCULATION (v2.2.1 — corrected)
+# =============================================================================
 
-# =============================================================================
-# SEVERITY CALCULATION
-# =============================================================================
+# Co-firing amplification: when multiple FMs fire, total penalty increases
+CO_FIRE_THRESHOLD = 2          # Minimum active FMs to trigger amplification
+CO_FIRE_AMPLIFICATION = 0.25   # 25% penalty increase per additional active FM
+ACTIVE_FM_MIN_SEVERITY = 15.0  # Minimum severity to count as "active"
+
+# Confidence penalty: low attribution confidence penalises score
+CONFIDENCE_BASELINE = 0.70     # No penalty above this
+CONFIDENCE_PENALTY_RATE = 15.0 # Points per 0.1 below baseline
+
 
 def calculate_fm_severity(
     fm: FailureMode,
@@ -209,8 +218,9 @@ def calculate_fm_severity(
 ) -> float:
     """
     Calculate weighted severity for a failure mode.
-    
-    Different FMs have different impact weights.
+
+    Weights are normalized (sum to 1.0) so that max theoretical
+    penalty from all 7 FMs at severity 100 = 100 points.
     """
     weight = FM_INFO[fm]["severity_weight"]
     return raw_severity * weight
@@ -218,20 +228,52 @@ def calculate_fm_severity(
 
 def calculate_validity_score(
     active_fms: List[tuple],  # List of (FailureMode, severity)
+    confidence: float = 0.8,  # Attribution confidence (0-1)
 ) -> float:
     """
     Calculate overall validity score from active failure modes.
-    
-    Validity = 100 - Σ(weighted_severity)
+
+    Formula (v2.2.1):
+        base_penalty   = sum(weight_i * severity_i)
+        amplified      = base_penalty * co_fire_multiplier
+        conf_penalty   = f(attribution_confidence)
+        score          = clip(100 - amplified - conf_penalty, 0, 100)
+
+    Fixes over v2.2.0:
+        - Weighted sum (not average) -- each FM adds independent penalty
+        - Co-firing amplification -- 3+ FMs compound non-linearly
+        - Confidence penalty -- uncertain attribution penalises score
     """
     if not active_fms:
         return 100.0
-    
+
+    # -- Step 1: Weighted sum of penalties --
     total_penalty = 0.0
+    active_count = 0
+
     for fm, severity in active_fms:
         weighted = calculate_fm_severity(fm, severity)
         total_penalty += weighted
-    
-    # Cap penalty at 100
-    validity = max(0, 100 - total_penalty)
+        if severity >= ACTIVE_FM_MIN_SEVERITY:
+            active_count += 1
+
+    # -- Step 2: Co-firing amplification --
+    # Multiple simultaneous failures are worse than the sum of parts
+    co_fire_multiplier = 1.0
+    if active_count >= CO_FIRE_THRESHOLD:
+        extra = active_count - CO_FIRE_THRESHOLD
+        co_fire_multiplier = 1.0 + extra * CO_FIRE_AMPLIFICATION
+
+    amplified_penalty = total_penalty * co_fire_multiplier
+
+    # -- Step 3: Confidence penalty --
+    # Low attribution confidence = engine can't identify root cause
+    # This uncertainty is itself a risk signal
+    confidence_penalty = 0.0
+    if confidence < CONFIDENCE_BASELINE:
+        gap = CONFIDENCE_BASELINE - confidence
+        confidence_penalty = gap * CONFIDENCE_PENALTY_RATE
+
+    # -- Step 4: Final score --
+    validity = max(0, 100 - amplified_penalty - confidence_penalty)
     return validity
