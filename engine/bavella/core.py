@@ -50,14 +50,23 @@ class Thresholds:
 
 
 class Weights:
-    """Frozen detector weights. Changes require new version."""
+    """Frozen detector weights. v2.2.1: rebalanced FM3/5/6/7."""
     FM1_VARIANCE = 0.18
     FM2_MEAN_DRIFT = 0.18
-    FM3_SEASONALITY = 0.10
+    FM3_SEASONALITY = 0.08      # was 0.10 — seasonality lower priority
     FM4_STRUCTURAL = 0.20
-    FM5_OUTLIERS = 0.12
-    FM6_DISTRIBUTION = 0.12
-    FM7_DEPENDENCY = 0.10
+    FM5_OUTLIERS = 0.15          # was 0.12 — outlier contamination underweighted
+    FM6_DISTRIBUTION = 0.15      # was 0.12 — distributional shift is real risk
+    FM7_DEPENDENCY = 0.06        # was 0.10 — already regime-modulated heavily
+    
+    # Co-firing amplification (v2.2.1)
+    CO_FIRE_THRESHOLD = 2        # min active FMs to trigger
+    CO_FIRE_AMPLIFICATION = 0.25 # 25% penalty increase per extra active FM
+    ACTIVE_FM_MIN_SEVERITY = 15.0
+    
+    # Confidence penalty (v2.2.1)
+    CONFIDENCE_BASELINE = 0.70
+    CONFIDENCE_PENALTY_RATE = 15.0
     
     VERSION = "1.0.0"  # Weight version for audit trail
 

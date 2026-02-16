@@ -933,12 +933,16 @@ class SeriesAnalyzer:
         }
     
     def _compute_validity_score(self, active_results: List[DetectorResult]) -> float:
-        """Compute validity score from active failures."""
+        """
+        Compute validity score from active failures.
+        
+        v2.2.1 fixes:
+          - Uses raw severity, NOT effective_severity (confidence no longer discounts)
+          - Co-firing amplification when 3+ FMs active
+          - Confidence penalty when attribution is uncertain
+        """
         if not active_results:
             return 100.0
-        
-        # Use effective severity (severity × confidence)
-        total_weighted_loss = 0.0
         
         weight_map = {
             FailureMode.FM1_VARIANCE_REGIME: Weights.FM1_VARIANCE,
@@ -950,11 +954,68 @@ class SeriesAnalyzer:
             FailureMode.FM7_DEPENDENCY_BREAK: Weights.FM7_DEPENDENCY,
         }
         
+        # Step 1: Weighted sum of raw severities (NOT effective_severity)
+        total_penalty = 0.0
+        active_count = 0
+        
         for r in active_results:
             weight = weight_map.get(r.failure_mode, 0.1)
-            total_weighted_loss += r.effective_severity * weight
+            total_penalty += r.severity * weight
+            if r.severity >= Weights.ACTIVE_FM_MIN_SEVERITY:
+                active_count += 1
         
-        return max(0, 100 - total_weighted_loss)
+        # Step 2: Co-firing amplification
+        co_fire_multiplier = 1.0
+        if active_count >= Weights.CO_FIRE_THRESHOLD:
+            extra = active_count - Weights.CO_FIRE_THRESHOLD
+            co_fire_multiplier = 1.0 + extra * Weights.CO_FIRE_AMPLIFICATION
+        
+        amplified_penalty = total_penalty * co_fire_multiplier
+        
+        # Step 3: Confidence penalty (uncertain attribution = risk)
+        attribution_confidence = self._compute_attribution_confidence(active_results)
+        
+        confidence_penalty = 0.0
+        if attribution_confidence < Weights.CONFIDENCE_BASELINE:
+            gap = Weights.CONFIDENCE_BASELINE - attribution_confidence
+            confidence_penalty = gap * Weights.CONFIDENCE_PENALTY_RATE
+        
+        return max(0, 100 - amplified_penalty - confidence_penalty)
+    
+    def _compute_attribution_confidence(self, active_results: List[DetectorResult]) -> float:
+        """
+        How clearly can we identify a single root cause?
+        
+        Blends HHI (severity concentration) with average detector confidence.
+        1.0 = one dominant FM with high confidence, ~0 = evenly split and uncertain.
+        """
+        severities = [r.severity for r in active_results if r.severity > 0]
+        if not severities:
+            return 1.0
+        
+        total = sum(severities)
+        if total == 0:
+            return 1.0
+        
+        # HHI: measures concentration of severity across FMs
+        shares = [s / total for s in severities]
+        hhi = sum(s ** 2 for s in shares)
+        
+        n = len(shares)
+        if n == 1:
+            return 1.0
+        
+        min_hhi = 1.0 / n
+        concentration = (hhi - min_hhi) / (1.0 - min_hhi) if (1.0 - min_hhi) > 0 else 1.0
+        
+        # Average detector confidence (0-1 scale)
+        avg_det_conf = sum(r.confidence.overall / 100 for r in active_results) / len(active_results)
+        
+        # Blend: 40% concentration, 60% detector confidence
+        # This prevents pure-HHI from being too harsh on 2-FM cases
+        blended = 0.4 * concentration + 0.6 * avg_det_conf
+        
+        return max(0.0, min(1.0, blended))
     
     def _record_episodes(
         self,
