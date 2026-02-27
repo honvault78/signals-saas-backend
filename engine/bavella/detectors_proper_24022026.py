@@ -15,15 +15,6 @@ New (CORRECT):
     - Low confidence → wider DEGRADED band, not better score
     - "We're not sure" should NEVER make things look better
 
-FM1 V2 (2026-02): Three-component volatility regime shift detector
--------------------------------------------------------------------
-    - Component A: Variance ratio (recalibrated ×65)
-    - Component B: Rolling variance z-score (temporal resolution)
-    - Component C: Variance CUSUM (structural step-change detection)
-    - Directional asymmetry (compression dampened 0.5×)
-    - Severity-confidence coupling (from FM4 pattern)
-    - Regime awareness applied in series_analyzer (not inside detector)
-
 Copyright 2024-2026 Bavella Technologies Sarl
 """
 
@@ -183,272 +174,21 @@ class FailureModeDetector(ABC):
 
 
 # =============================================================================
-# FM1: VOLATILITY REGIME SHIFT (V2)
+# FM1: VARIANCE REGIME SHIFT
 # =============================================================================
 
 class FM1_VarianceRegimeShift(FailureModeDetector):
     """
     Detects changes in volatility structure.
     
-    V2: Three independent detection components:
-        A) Variance Ratio — level shift between past/recent windows (recalibrated)
-        B) Rolling Variance Z-Score — how unusual is current vol vs rolling history
-        C) Variance CUSUM — structural step-change in the variance process
-    
-    Final severity = max(A, B, C) → directional asymmetry → severity-confidence coupling
-    
-    Regime awareness is applied in series_analyzer.py (not inside detector),
-    mirroring the FM7 pattern where the detector is regime-agnostic and the
-    analyzer applies ADF-based modulation.
-    
     TIER 1: Light contextualization (can be confused with FM4/FM2).
+    Adds context about whether mean/beta are also affected.
     """
     
     failure_mode = FailureMode.FM1_VARIANCE_REGIME
     
-    # CUSUM critical values (Ploberger-Krämer, same as FM4)
-    CUSUM_CRITICAL_90 = 0.85
-    CUSUM_CRITICAL_95 = 1.00
-    CUSUM_CRITICAL_99 = 1.25
-    
     def __init__(self, short_window_ratio: float = 0.3):
         self.short_window_ratio = short_window_ratio
-    
-    # -----------------------------------------------------------------
-    # Severity mapping helpers
-    # -----------------------------------------------------------------
-    
-    @staticmethod
-    def _z_score_to_severity(z: float) -> float:
-        """Piecewise linear z-score → severity mapping."""
-        if z < 1.5:
-            return 0.0
-        elif z < 2.0:
-            return (z - 1.5) * 40        # 0→20  over [1.5, 2.0)
-        elif z < 3.0:
-            return 20 + (z - 2.0) * 30   # 20→50 over [2.0, 3.0)
-        elif z < 4.0:
-            return 50 + (z - 3.0) * 25   # 50→75 over [3.0, 4.0)
-        else:
-            return min(100, 75 + (z - 4.0) * 25)  # 75→100 over [4.0, 5.0]
-    
-    @staticmethod
-    def _z_var_to_confidence(z: float) -> float:
-        """Z-score magnitude → component confidence."""
-        if z < 1.5:
-            return 0.3
-        elif z < 2.0:
-            return 0.5
-        elif z < 3.0:
-            return 0.7
-        elif z < 4.0:
-            return 0.85
-        return 0.92
-    
-    @staticmethod
-    def _cusum_to_confidence(sup: float) -> float:
-        """CUSUM supremum → component confidence."""
-        if sup < 0.85:
-            return 0.3
-        elif sup < 1.00:
-            return 0.6
-        elif sup < 1.25:
-            return 0.75
-        return 0.90
-    
-    # -----------------------------------------------------------------
-    # Component A: Variance Ratio (recalibrated from V1)
-    # -----------------------------------------------------------------
-    
-    def _component_a_ratio(
-        self, z: pd.Series, n: int,
-    ) -> Tuple[float, float, Dict[str, Any]]:
-        """Returns (severity_A, confidence_A, evidence_A)."""
-        split = int(n * (1 - self.short_window_ratio))
-        past = z.iloc[:split]
-        recent = z.iloc[split:]
-        
-        var_past = past.var()
-        var_recent = recent.var()
-        
-        if var_past < 1e-10:
-            return 0.0, 0.5, {
-                "variance_ratio": 1.0,
-                "log_ratio": 0.0,
-                "f_statistic": 1.0,
-                "p_value": 1.0,
-            }
-        
-        ratio = var_recent / var_past
-        log_ratio = abs(np.log(max(ratio, 1e-10)))
-        
-        # F-test
-        f_stat = var_recent / var_past if var_recent > var_past else var_past / var_recent
-        df1, df2 = len(recent) - 1, len(past) - 1
-        p_value = 2 * (1 - stats.f.cdf(f_stat, df1, df2))
-        
-        severity_a = min(100, log_ratio * 65)  # V2: recalibrated from 50→65
-        confidence_a = 0.9 if p_value < 0.05 else 0.5
-        
-        evidence_a = {
-            "variance_ratio": float(ratio),
-            "log_ratio": float(log_ratio),
-            "f_statistic": float(f_stat),
-            "p_value": float(p_value),
-        }
-        
-        return severity_a, confidence_a, evidence_a
-    
-    # -----------------------------------------------------------------
-    # Component B: Rolling Variance Z-Score
-    # -----------------------------------------------------------------
-    
-    def _component_b_rolling_zscore(
-        self, z: pd.Series, n: int,
-    ) -> Tuple[float, float, Dict[str, Any]]:
-        """Returns (severity_B, confidence_B, evidence_B)."""
-        rolling_window = max(30, n // 10)
-        
-        rolling_var = z.rolling(window=rolling_window).var().dropna()
-        
-        if len(rolling_var) < 20:
-            return 0.0, 0.3, {
-                "rolling_z_var": 0.0,
-                "rolling_var_current": 0.0,
-                "rolling_var_mean": 0.0,
-                "rolling_var_std": 0.0,
-                "rolling_window_size": rolling_window,
-            }
-        
-        var_mean = rolling_var.mean()
-        var_std = rolling_var.std()
-        
-        if var_std < 1e-10:
-            return 0.0, 0.3, {
-                "rolling_z_var": 0.0,
-                "rolling_var_current": float(rolling_var.iloc[-1]),
-                "rolling_var_mean": float(var_mean),
-                "rolling_var_std": float(var_std),
-                "rolling_window_size": rolling_window,
-            }
-        
-        z_var = (rolling_var.iloc[-1] - var_mean) / var_std
-        severity_b = self._z_score_to_severity(abs(z_var))
-        confidence_b = self._z_var_to_confidence(abs(z_var))
-        
-        evidence_b = {
-            "rolling_z_var": float(z_var),
-            "rolling_var_current": float(rolling_var.iloc[-1]),
-            "rolling_var_mean": float(var_mean),
-            "rolling_var_std": float(var_std),
-            "rolling_window_size": rolling_window,
-        }
-        
-        return severity_b, confidence_b, evidence_b
-    
-    # -----------------------------------------------------------------
-    # Component C: Variance CUSUM
-    # -----------------------------------------------------------------
-    
-    def _component_c_cusum(
-        self, z: pd.Series, n: int,
-    ) -> Tuple[float, float, Dict[str, Any]]:
-        """Returns (severity_C, confidence_C, evidence_C)."""
-        rolling_window = max(30, n // 10)
-        
-        rolling_var = z.rolling(window=rolling_window).var().dropna()
-        m = len(rolling_var)
-        
-        if m < 40:
-            return 0.0, 0.3, {
-                "cusum_sup": 0.0,
-                "cusum_critical": self.CUSUM_CRITICAL_90,
-                "cusum_significant": False,
-                "cusum_break_index": None,
-                "cusum_break_date": None,
-                "cusum_shift_ratio": None,
-            }
-        
-        values = rolling_var.values
-        mean = np.mean(values)
-        std = max(np.std(values), 1e-10)
-        
-        cusum = np.cumsum(values - mean)
-        normalized_cusum = cusum / (std * np.sqrt(m))
-        sup_cusum = float(np.max(np.abs(normalized_cusum)))
-        break_idx = int(np.argmax(np.abs(normalized_cusum)))
-        
-        if sup_cusum < self.CUSUM_CRITICAL_90:
-            return 0.0, 0.3, {
-                "cusum_sup": sup_cusum,
-                "cusum_critical": self.CUSUM_CRITICAL_90,
-                "cusum_significant": False,
-                "cusum_break_index": None,
-                "cusum_break_date": None,
-                "cusum_shift_ratio": None,
-            }
-        
-        # Pre/post analysis at the break point
-        shift_ratio = 1.0
-        break_date = None
-        if 10 < break_idx < m - 10:
-            pre_var = np.mean(values[:break_idx])
-            post_var = np.mean(values[break_idx:])
-            shift_ratio = max(post_var, pre_var) / max(min(post_var, pre_var), 1e-10)
-            if hasattr(rolling_var, 'index'):
-                break_date = str(rolling_var.index[break_idx])[:10]
-            else:
-                break_date = f"index {break_idx}"
-        else:
-            shift_ratio = 1.0
-            break_date = "edge (unreliable)"
-        
-        # Severity from CUSUM strength + magnitude bonus
-        # CRITICAL: Rolling variance observations are serially correlated
-        # (overlapping windows), which inflates CUSUM relative to iid
-        # critical values. Require shift_ratio > 1.5 as a materiality gate.
-        # A 50% change in rolling variance is material; below that is noise.
-        if shift_ratio < 1.5:
-            # CUSUM significant but pre/post difference is immaterial
-            severity_c = 0.0
-            evidence_c = {
-                "cusum_sup": sup_cusum,
-                "cusum_critical": self.CUSUM_CRITICAL_90,
-                "cusum_significant": True,
-                "cusum_break_index": break_idx,
-                "cusum_break_date": break_date,
-                "cusum_shift_ratio": float(shift_ratio),
-                "cusum_gated": True,
-            }
-            return severity_c, 0.3, evidence_c
-        
-        base = min(40, (sup_cusum - self.CUSUM_CRITICAL_90) * 40)
-        
-        if shift_ratio >= 2.0:
-            magnitude_bonus = min(40, (shift_ratio - 1) * 20)
-        elif shift_ratio >= 1.5:
-            magnitude_bonus = (shift_ratio - 1) * 15
-        else:
-            magnitude_bonus = 0
-        
-        severity_c = min(100, base + magnitude_bonus)
-        confidence_c = self._cusum_to_confidence(sup_cusum)
-        
-        evidence_c = {
-            "cusum_sup": sup_cusum,
-            "cusum_critical": self.CUSUM_CRITICAL_90,
-            "cusum_significant": True,
-            "cusum_break_index": break_idx,
-            "cusum_break_date": break_date,
-            "cusum_shift_ratio": float(shift_ratio),
-            "cusum_gated": False,
-        }
-        
-        return severity_c, confidence_c, evidence_c
-    
-    # -----------------------------------------------------------------
-    # Main detect method
-    # -----------------------------------------------------------------
     
     def detect(
         self,
@@ -462,89 +202,42 @@ class FM1_VarianceRegimeShift(FailureModeDetector):
         if n < 40:
             return self._make_signal(
                 severity=0, confidence=0.3,
-                explanation="Insufficient data for volatility regime detection",
+                explanation="Insufficient data for variance regime detection",
                 evidence={"n": n, "error": "insufficient_data"},
             )
         
-        # =================================================================
-        # THREE DETECTION COMPONENTS
-        # =================================================================
-        severity_a, conf_a, evidence_a = self._component_a_ratio(z, n)
-        severity_b, conf_b, evidence_b = self._component_b_rolling_zscore(z, n)
-        severity_c, conf_c, evidence_c = self._component_c_cusum(z, n)
+        split = int(n * (1 - self.short_window_ratio))
+        past = z.iloc[:split]
+        recent = z.iloc[split:]
         
-        # =================================================================
-        # AGGREGATION: max of three components
-        # =================================================================
-        components = {
-            "ratio": severity_a,
-            "z_score": severity_b,
-            "cusum": severity_c,
-        }
-        raw_severity = max(severity_a, severity_b, severity_c)
-        dominant_component = max(components, key=components.get)
+        var_past = past.var()
+        var_recent = recent.var()
         
-        active_count = sum(1 for s in [severity_a, severity_b, severity_c] if s > 15)
+        if var_past < 1e-10:
+            return self._make_signal(
+                severity=0, confidence=0.5,
+                explanation="Historical variance near zero",
+                evidence={"var_past": float(var_past), "var_recent": float(var_recent)},
+            )
         
-        # =================================================================
-        # DIRECTIONAL ASYMMETRY
-        # =================================================================
-        ratio = evidence_a.get("variance_ratio", 1.0)
-        if ratio < 1.0:
-            direction = "compression"
-            asymmetry_factor = 0.5
-        else:
-            direction = "expansion"
-            asymmetry_factor = 1.0
+        ratio = var_recent / var_past
+        log_ratio = abs(np.log(max(ratio, 1e-10)))
         
-        pre_asymmetry = raw_severity
-        asymmetry_adjusted = raw_severity * asymmetry_factor
-        
-        # =================================================================
-        # COMPOSITE CONFIDENCE
-        # =================================================================
-        # Weight by dominant component
-        if dominant_component == "ratio":
-            raw_confidence = 0.6 * conf_a + 0.2 * conf_b + 0.2 * conf_c
-        elif dominant_component == "z_score":
-            raw_confidence = 0.2 * conf_a + 0.6 * conf_b + 0.2 * conf_c
-        else:
-            raw_confidence = 0.2 * conf_a + 0.2 * conf_b + 0.6 * conf_c
-        
-        # Convergence bonus
-        convergence_bonus = 0.0
-        if active_count >= 2:
-            convergence_bonus += 0.10
-        if active_count == 3:
-            convergence_bonus += 0.05
-        raw_confidence = min(0.95, raw_confidence + convergence_bonus)
-        
-        # =================================================================
-        # SEVERITY-CONFIDENCE COUPLING (from FM4 pattern)
-        # =================================================================
-        severity_capped = False
-        final_severity = asymmetry_adjusted
-        if raw_confidence < 0.5:
-            if final_severity > 40:
-                severity_capped = True
-            final_severity = min(final_severity, 40)
-        elif raw_confidence < 0.7:
-            if final_severity > 60:
-                severity_capped = True
-            final_severity = min(final_severity, 60)
+        # F-test
+        f_stat = var_recent / var_past if var_recent > var_past else var_past / var_recent
+        df1, df2 = len(recent) - 1, len(past) - 1
+        p_value = 2 * (1 - stats.f.cdf(f_stat, df1, df2))
         
         # =================================================================
         # LIGHT CONTEXTUALIZATION: Is mean also affected?
         # =================================================================
-        split = int(n * (1 - self.short_window_ratio))
-        past = z.iloc[:split]
-        recent = z.iloc[split:]
         mean_past = past.mean()
         mean_recent = recent.mean()
         overall_std = z.std()
         mean_shift = abs(mean_recent - mean_past) / max(overall_std, 1e-10)
-        mean_stable = mean_shift < 1.0
+        mean_stable = mean_shift < 1.0  # Mean hasn't moved much
         
+        # Context message
         if mean_stable and ratio > 1.2:
             context = " (mean stable — likely regime noise, not structural)"
         elif not mean_stable and ratio > 1.2:
@@ -552,64 +245,23 @@ class FM1_VarianceRegimeShift(FailureModeDetector):
         else:
             context = ""
         
-        # =================================================================
-        # EXPLANATION
-        # =================================================================
-        factor = ratio if ratio > 1 else 1 / max(ratio, 1e-10)
-        dir_word = "increased" if ratio > 1 else "decreased"
-        p_value = evidence_a.get("p_value", 1.0)
+        severity = min(100, log_ratio * 50)
+        confidence = 0.9 if p_value < 0.05 else 0.6
         
-        explanation = (
-            f"Volatility {dir_word} {factor:.1f}x (p={p_value:.3f}), "
-            f"dominant: {dominant_component}"
-        )
-        if active_count >= 2:
-            explanation += f" ({active_count}/3 components active)"
-        explanation += context
-        
-        # =================================================================
-        # EVIDENCE (full V2 schema)
-        # =================================================================
-        evidence = {}
-        
-        # Component A
-        evidence.update(evidence_a)
-        evidence["severity_A"] = float(severity_a)
-        
-        # Component B
-        evidence.update(evidence_b)
-        evidence["severity_B"] = float(severity_b)
-        
-        # Component C
-        evidence.update(evidence_c)
-        evidence["severity_C"] = float(severity_c)
-        
-        # Aggregation
-        evidence["dominant_component"] = dominant_component
-        evidence["raw_severity"] = float(raw_severity)
-        evidence["active_component_count"] = active_count
-        
-        # Directional asymmetry
-        evidence["direction"] = direction
-        evidence["asymmetry_factor"] = asymmetry_factor
-        evidence["pre_asymmetry_severity"] = float(pre_asymmetry)
-        
-        # Context
-        evidence["mean_shift_sigma"] = float(mean_shift)
-        evidence["mean_stable"] = mean_stable
-        
-        # Confidence internals
-        evidence["confidence_A"] = float(conf_a)
-        evidence["confidence_B"] = float(conf_b)
-        evidence["confidence_C"] = float(conf_c)
-        evidence["convergence_bonus"] = float(convergence_bonus)
-        evidence["severity_confidence_capped"] = severity_capped
+        direction = "increased" if ratio > 1 else "decreased"
+        factor = ratio if ratio > 1 else 1/ratio
         
         return self._make_signal(
-            severity=final_severity,
-            confidence=raw_confidence,
-            explanation=explanation,
-            evidence=evidence,
+            severity=severity, confidence=confidence,
+            explanation=f"Volatility {direction} {factor:.1f}x (p={p_value:.3f}){context}",
+            evidence={
+                "variance_ratio": float(ratio),
+                "log_ratio": float(log_ratio),
+                "f_statistic": float(f_stat),
+                "p_value": float(p_value),
+                "mean_shift_sigma": float(mean_shift),
+                "mean_stable": mean_stable,
+            },
         )
 
 

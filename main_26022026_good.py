@@ -332,7 +332,7 @@ async def analyze(
     from engine.stats_analysis import calculate_enhanced_statistics, calculate_memo_stats
     from engine.memo import (
         generate_memo, fetch_pair_fundamentals, fetch_claude_fs_analysis,
-        _classify_is_equity_pair, render_claude_fs_html, compute_deterministic_decision,
+        render_claude_fs_html, compute_deterministic_decision,
     )
     from engine.report import generate_html_report
     
@@ -479,33 +479,14 @@ async def analyze(
             fundamental_data = {}
     
     # =========================================================================
-    # Step 9b-detect: Classify whether this is a true equity pair
-    # Deterministic non-equity detection — defaults to equity for unknown tickers.
-    # No API call needed: checks against known ETF/commodity/crypto/bond lists.
-    # =========================================================================
-    is_equity_pair = False
-    try:
-        is_equity_pair = _classify_is_equity_pair(tickers=portfolio.tickers)
-        logger.info(f"Asset classification: is_equity_pair={is_equity_pair} for {portfolio.tickers}")
-    except Exception as e:
-        logger.warning(f"Equity classification failed (non-fatal): {e}")
-        is_equity_pair = True  # default to equity on error — better to run full analysis
-
-    # Hard-gate: zero out fundamental_data for non-equity so P/B, P/E etc never reach the LLM
-    if not is_equity_pair and fundamental_data:
-        logger.info("Non-equity pair: clearing fundamental_data to prevent P/B, P/E leakage")
-        fundamental_data = {}
-
-    # =========================================================================
-    # Step 9c: Claude FS fundamental research (equity pairs only)
+    # Step 9c: Claude FS fundamental research (deep comparable company analysis)
     # =========================================================================
     claude_fs_result = None
-    if is_equity_pair and request.include_ai_memo and fundamental_data and len(fundamental_data) >= 2:
+    if request.include_ai_memo and fundamental_data and len(fundamental_data) >= 2:
         anthropic_key = x_anthropic_key or os.environ.get("ANTHROPIC_API_KEY")
         if anthropic_key:
-            logger.info(f"DIAG: Anthropic key present ({len(anthropic_key)} chars), calling Claude FS...")
             try:
-                logger.info("Running Claude FS fundamental research (equity pair)...")
+                logger.info("Running Claude FS fundamental research...")
                 claude_fs_result = await fetch_claude_fs_analysis(
                     fundamental_data=fundamental_data,
                     anthropic_api_key=anthropic_key,
@@ -516,14 +497,14 @@ async def analyze(
                     failure_modes=_extract_failure_modes(validity_output),
                 )
                 if claude_fs_result:
-                    logger.info(f"Claude FS analysis: {len(claude_fs_result)} chars — FIRST 200: {claude_fs_result[:200]!r}")
+                    logger.info(f"Claude FS analysis: {len(claude_fs_result)} chars")
                 else:
-                    logger.warning("DIAG: Claude FS returned None/empty — FA section will use GPT training knowledge only")
+                    logger.info("Claude FS: no analysis returned (non-fatal)")
             except Exception as e:
                 logger.warning(f"Claude FS analysis failed (non-fatal): {e}")
                 claude_fs_result = None
         else:
-            logger.warning("DIAG: No Anthropic API key found — Claude FS skipped entirely")
+            logger.info("Claude FS: no Anthropic API key — skipping fundamental research")
     
     # =========================================================================
     # Step 9d: Deterministic decision (PROBLEM 4 FIX)
@@ -563,7 +544,6 @@ async def analyze(
                 fundamental_data=fundamental_data,
                 claude_fs_analysis=claude_fs_result,
                 deterministic_decision=deterministic_decision,
-                is_equity_pair=is_equity_pair,
             )
     
     # Step 11: Generate HTML report
@@ -572,36 +552,28 @@ async def analyze(
     as_of_date = request.analysis_end_date or datetime.now().strftime("%Y-%m-%d")
 
     # ── Split GPT output into TRADE ANALYSIS + FUNDAMENTAL ANALYSIS ──
-    import re as _re
-    _FUND_RE = _re.compile(r"^##\s*FUNDAMENTAL\s*ANALYSIS\s*$", _re.MULTILINE | _re.IGNORECASE)
+    # GPT now writes both sections in one pass. Split on the section header.
+    # If no FUNDAMENTAL ANALYSIS section found, fall back to rendering raw
+    # claude_fs_result (old behaviour) so nothing breaks if GPT omits it.
     claude_fs_html = None
-
-    if is_equity_pair and memo:
-        m = _FUND_RE.search(memo)
-        if m:
-            trade_part = memo[:m.start()].strip()
-            fundamental_raw = memo[m.end():].strip()
-            memo = trade_part
-            logger.info(f"Split successful — trade: {len(trade_part)} chars, fundamental: {len(fundamental_raw)} chars")
-            try:
-                claude_fs_html = render_claude_fs_html(fundamental_raw, as_of_date=as_of_date)
-            except Exception as e:
-                logger.warning(f"Fundamental section render failed: {e}")
-                claude_fs_html = None
-        elif claude_fs_result:
-            logger.info("FA header not found in GPT output — falling back to raw Claude FS")
-            try:
-                claude_fs_html = render_claude_fs_html(claude_fs_result, as_of_date=as_of_date)
-            except Exception as e:
-                logger.warning(f"Claude FS HTML render failed: {e}")
-                claude_fs_html = None
-    elif memo:
-        # Non-equity: strip any FA section GPT wrote despite instructions
-        m = _FUND_RE.search(memo)
-        if m:
-            logger.info("Non-equity: stripping leaked FUNDAMENTAL ANALYSIS from GPT output")
-            memo = memo[:m.start()].strip()
-    # Non-equity: claude_fs_html stays None
+    FUND_HEADER = "## FUNDAMENTAL ANALYSIS"
+    if memo and FUND_HEADER in memo:
+        # Split: trade part stays in memo, fundamental part goes to claude_fs_html
+        parts = memo.split(FUND_HEADER, 1)
+        memo = parts[0].strip()
+        fundamental_raw = parts[1].strip()
+        try:
+            claude_fs_html = render_claude_fs_html(fundamental_raw, as_of_date=as_of_date)
+        except Exception as e:
+            logger.warning(f"Fundamental section render failed: {e}")
+            claude_fs_html = None
+    elif claude_fs_result:
+        # Fallback: GPT didn't write the section — render raw Claude FS output
+        try:
+            claude_fs_html = render_claude_fs_html(claude_fs_result, as_of_date=as_of_date)
+        except Exception as e:
+            logger.warning(f"Claude FS HTML render failed: {e}")
+            claude_fs_html = None
     
     # Report order: Validity → Regime → TRADE ANALYSIS → FUNDAMENTAL ANALYSIS → Disclaimer
     report_kwargs = dict(

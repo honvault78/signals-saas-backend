@@ -282,55 +282,6 @@ def _detect_asset_class(tickers: list) -> str:
     return "mixed"
 
 
-_NON_EQUITY_BASENAMES = {
-    # Gold/silver/metals
-    "GLD","IAU","GLDM","BAR","SGOL","SLV","SIVR","SIL","GDX","GDXJ","RING","PPLT","PALL","CPER","JJC",
-    # Energy
-    "USO","UCO","SCO","BNO","UGA","UNG","BOIL","KOLD","DBO","DBE","OIL",
-    # Broad commodities
-    "DJP","PDBC","DBC","GSG","COMT","FTGC","COMB",
-    # Agriculture
-    "CORN","WEAT","SOYB","CANE","JO","NIB","BAL","COW","DBA","DAG","SGG",
-    # Bond/rate ETFs
-    "TLT","TBT","TMF","TMV","IEF","IEI","SHY","VGSH","VGIT","VGLT",
-    "BND","AGG","LQD","HYG","JNK","BKLN","EMB","PCY","VCIT","VCSH",
-    "MUB","VTEB","MBB","VMBS","GNMA","ZROZ","EDV","TIP","SCHP","VTIP","GOVT",
-    # Broad index ETFs
-    "SPY","VOO","IVV","VTI","ITOT","QQQ","QQQM","IWM","IWB","IWF","IWD",
-    "MDY","IJH","IJR","VB","VO","VV","DIA","RSP","SPLG",
-    "EFA","VEA","IEFA","EEM","VWO","IEMG","ACWI","VT","VXUS",
-    # Sector ETFs
-    "XLF","XLE","XLK","XLV","XLI","XLU","XLP","XLB","XLY","XLRE","XLC",
-    "VFH","VDE","VGT","VHT","VIS","VPU","VDC","VAW","VCR",
-    "IBB","XBI","SMH","SOXX","KRE","KBE","IAT","IYF",
-    "ARKK","ARKG","ARKW","ARKF","ARKQ",
-    # Volatility
-    "VXX","UVXY","SVXY","VIXY","VIXM",
-    # Currencies
-    "FXE","UUP","UDN","FXY","FXB","FXF","FXA","FXC","FXS","CEW",
-    # Leveraged/inverse
-    "SSO","UPRO","SDS","SPXU","QLD","TQQQ","SQQQ","DDM","DXD","TWM","TNA","TZA","UDOW","SDOW","SPXL","SPXS",
-}
-
-
-def _classify_is_equity_pair(tickers: list) -> bool:
-    """
-    Returns True if ALL tickers look like individual company stocks.
-    Returns False if ANY ticker is a known ETF, commodity fund, bond fund, or crypto.
-    Default: True (unknown tickers assumed to be company stocks).
-    Exchange suffixes (.PA .L .DE .HK .T etc.) are stripped before matching.
-    """
-    if not tickers:
-        return False
-    for t in tickers:
-        base = t.upper().split(".")[0].split("-")[0]
-        if base in _NON_EQUITY_BASENAMES or base in _CRYPTO_TICKERS:
-            return False
-        if any(t.upper().endswith(s) for s in _CRYPTO_SUFFIXES):
-            return False
-    return True
-
-
 def _infer_spread_driver(enhanced_stats, failure_modes=None, asset_class="equity"):
     """Infer most likely spread driver from statistical signatures.
     
@@ -1052,10 +1003,10 @@ def _build_comparative_scorecard(fundamental_data: dict, tickers: list) -> str:
 SYSTEM_PROMPT = """You are a senior portfolio manager writing a DECISION BRIEF for a trader.
 
 SECTION NAMING RULES — apply these exactly, no exceptions:
-- Your first section is always **## TRADE ANALYSIS**
-- If instructed, add **## FUNDAMENTAL ANALYSIS** as the second section
+- Your output section is called: **TRADE ANALYSIS** (not "AI Trade Analysis", not "Trading Decision", not "Decision Brief")
+- Start your output with the header: ## TRADE ANALYSIS
 - These names reflect that this is an institutional decision engine, not a retail tool
-- If instructed to write a FUNDAMENTAL ANALYSIS section, write it as the second section after TRADE ANALYSIS
+- Do NOT write a "FUNDAMENTAL ANALYSIS" section — that section is handled separately
 
 Your job is NOT to list statistics or repeat what's in the data tables. Your job is to INTERPRET 
 what the detection engine found and translate it into a clear, actionable trading decision.
@@ -1068,10 +1019,7 @@ CRITICAL RULES:
 5. The regime determines which strategy SHOULD work. If mismatch, say so bluntly.
 6. When confidence is low, say so clearly.
 7. If multiple FMs firing, explain if REINFORCING or INDEPENDENT.
-8. WORD BUDGET — strictly enforce per section:
-   - TRADE ANALYSIS: 450–550 words maximum. Cut ruthlessly.
-   - FUNDAMENTAL ANALYSIS: 450–600 words. Never drop this section to fit TRADE.
-   - If running out of space: compress TRADE ANALYSIS first, never drop ## FUNDAMENTAL ANALYSIS.
+8. Keep UNDER 1000 words. Every sentence earns its place.
 9. Do NOT use Sharpe ratio.
 10. Plain English. Explain technical terms immediately.
 11. End with ONE-LINE verdict a trader acts on in 5 seconds.
@@ -1302,7 +1250,7 @@ Your ONLY job is to find raw facts, numbers, and events via web search and retur
 in structured form. You are NOT writing a research note — you are feeding a data pipeline.
 A senior analyst will receive your output and write the actual prose. Your job: find the data.
 
-## WHAT TO SEARCH (12-18 searches — execute all categories)
+## WHAT TO SEARCH (8-12 searches — execute all categories)
 
 1. EARNINGS (one search per company):
    "[company] most recent quarterly earnings results [year]"
@@ -1339,8 +1287,8 @@ Use this exact structure:
 - Report date: [YYYY-MM-DD]
 
 ### ANALYST ACTIONS: [TICKER]
-- [YYYY-MM-DD]: [Firm] [upgraded/downgraded/initiated] to [new rating], target [€/$/£X] (from [€/$/£X prior or N/A]) — [reason, ≤10 words]
-[one line per action, most recent 3-4 only, N/A if none found]
+- [YYYY-MM-DD]: [Firm] [action] to [new rating], target $X (from $X) — [reason, ≤10 words]
+[one line per action, most recent 2-3 only]
 
 ### MARKET DEBATE
 - Primary fear: [concrete — e.g. "hyperscalers cut AI capex in 2H26 as ROI questioned"]
@@ -1367,11 +1315,7 @@ HARD RULES:
 - One quarter per company maximum. Most recent only. Discard older quarters.
 - Write N/A for any field where data was not found — never omit fields.
 - No filler: no "this suggests", "this indicates", "notably", "importantly".
-- No narrative paragraphs. Bullets and data only.
-- CRITICAL: Do NOT write any planning text, narration, or meta-commentary like
-  "I'll execute searches now", "Starting with batch 1", "Good, now running...".
-  Your FIRST output character must be "#" (start of first ### block).
-  Any text before the first ### header is wasted tokens and will be discarded."""
+- No narrative paragraphs. Bullets and data only."""
 
 
 CLAUDE_FS_CRYPTO_SYSTEM_PROMPT = """You are a senior crypto research analyst producing a LIVE RESEARCH NOTE 
@@ -1471,34 +1415,8 @@ def _build_claude_fs_prompt(
     
     # Company names for search context
     company_names = []
-
-    # Known company names for tickers where yfinance returns empty/ticker-only data
-    _KNOWN_NAMES = {
-        "RMS.PA": "Hermès International", "MC.PA": "LVMH Moët Hennessy Louis Vuitton",
-        "OR.PA": "L'Oréal", "SAN.PA": "Sanofi", "AIR.PA": "Airbus",
-        "BNP.PA": "BNP Paribas", "SU.PA": "Schneider Electric", "AI.PA": "Air Liquide",
-        "KER.PA": "Kering", "RI.PA": "Pernod Ricard", "TTE.PA": "TotalEnergies",
-        "EL.PA": "EssilorLuxottica", "CS.PA": "AXA", "SGO.PA": "Saint-Gobain",
-        "TSCO.L": "Tesco", "SBRY.L": "Sainsbury's", "AZN.L": "AstraZeneca",
-        "HSBA.L": "HSBC", "BP.L": "BP", "SHEL.L": "Shell", "ULVR.L": "Unilever",
-        "GSK.L": "GSK", "RIO.L": "Rio Tinto", "BHP.L": "BHP Group",
-        "BARC.L": "Barclays", "LLOY.L": "Lloyds Banking Group", "VOD.L": "Vodafone",
-        "SIE.DE": "Siemens", "SAP.DE": "SAP", "BAYN.DE": "Bayer",
-        "BMW.DE": "BMW", "VOW3.DE": "Volkswagen", "ALV.DE": "Allianz",
-        "BAS.DE": "BASF", "DTE.DE": "Deutsche Telekom", "MBG.DE": "Mercedes-Benz",
-        "NESN.SW": "Nestlé", "ROG.SW": "Roche", "NOVN.SW": "Novartis",
-        "ABBN.SW": "ABB", "ZURN.SW": "Zurich Insurance",
-        "0700.HK": "Tencent", "9988.HK": "Alibaba", "0005.HK": "HSBC Holdings",
-        "7203.T": "Toyota", "6758.T": "Sony", "9984.T": "SoftBank",
-    }
-
-    def _resolve_name(ticker):
-        return (_KNOWN_NAMES.get(ticker.upper())
-                or _KNOWN_NAMES.get(ticker)
-                or fundamental_data.get(ticker, {}).get("name")
-                or ticker)
     for t in tickers:
-        name = _resolve_name(t)
+        name = fundamental_data.get(t, {}).get("name", t)
         sector = fundamental_data.get(t, {}).get("sector", "Unknown")
         industry = fundamental_data.get(t, {}).get("industry", "Unknown")
         company_names.append(f"{t} ({name}) — {sector}/{industry}")
@@ -1506,8 +1424,14 @@ def _build_claude_fs_prompt(
     # Trade context
     trade_ctx = ""
     if long_positions and short_positions:
-        long_names = [f"{t} ({_resolve_name(t)})" for t in long_positions]
-        short_names = [f"{t} ({_resolve_name(t)})" for t in short_positions]
+        long_names = []
+        for t in long_positions:
+            name = fundamental_data.get(t, {}).get("name", t)
+            long_names.append(f"{t} ({name})")
+        short_names = []
+        for t in short_positions:
+            name = fundamental_data.get(t, {}).get("name", t)
+            short_names.append(f"{t} ({name})")
         trade_ctx = f"Trade structure: LONG {', '.join(long_names)} / SHORT {', '.join(short_names)}\n"
     
     # Performance context
@@ -1534,30 +1458,6 @@ def _build_claude_fs_prompt(
             signal_ctx += f"Active failure modes: {', '.join(fm_names)} — the statistical model is detecting degradation\n"
             signal_ctx += "Your fundamental research may explain WHY these signals are firing.\n"
     
-    # Derive search-friendly company names and sector for the mandate
-    long_tickers = list(long_positions.keys()) if long_positions else []
-    short_tickers = list(short_positions.keys()) if short_positions else []
-    all_tickers_for_prompt = long_tickers + short_tickers
-
-    def _search_name(ticker):
-        """Return best company name for search queries."""
-        _KNOWN = {
-            "RMS.PA": "Hermès", "MC.PA": "LVMH", "OR.PA": "L'Oréal",
-            "SAN.PA": "Sanofi", "AIR.PA": "Airbus", "KER.PA": "Kering",
-            "TSCO.L": "Tesco", "SBRY.L": "Sainsbury's", "AZN.L": "AstraZeneca",
-            "HSBA.L": "HSBC", "BP.L": "BP", "GSK.L": "GSK",
-            "SIE.DE": "Siemens", "SAP.DE": "SAP", "BAYN.DE": "Bayer",
-            "NESN.SW": "Nestlé", "ROG.SW": "Roche",
-        }
-        return (_KNOWN.get(ticker.upper())
-                or fundamental_data.get(ticker, {}).get("name")
-                or ticker.split(".")[0].split("-")[0])
-
-    comp_a = _search_name(long_tickers[0]) if long_tickers else "Company A"
-    comp_b = _search_name(short_tickers[0]) if short_tickers else "Company B"
-    sector = (fundamental_data.get(long_tickers[0] if long_tickers else "", {}).get("sector", "")
-              or "consumer/industrial")
-
     prompt = f"""# LIVE RESEARCH REQUEST — PAIRS TRADING DESK
 
 ## TRADE CONTEXT
@@ -1572,48 +1472,42 @@ Companies under analysis:
 
 You have the quantitative data above (P/E, margins, growth, analyst ratings).
 Your job is to find the LIVE intelligence the data table cannot provide.
-Execute ALL searches below. Every required field must be populated or marked N/A.
+Execute ALL searches. Every required field must be populated or marked N/A.
 
-1. **EARNINGS — 2 searches per company**:
-   Search A: "{comp_a} quarterly earnings results 2025 2026"
-   Search B: "{comp_a} earnings beat miss revenue EPS 2026"
-   Search A: "{comp_b} quarterly earnings results 2025 2026"
-   Search B: "{comp_b} earnings beat miss revenue EPS 2026"
+1. **EARNINGS — one search per company, most recent quarter only**:
+   "[company name] most recent quarterly earnings results [current year]"
    REQUIRED fields per company (mark N/A if not found — do NOT infer):
-   - Quarter and report date (YYYY-MM-DD)
-   - Revenue reported vs consensus: exact amount, beat/miss in € or $ and %
-   - EPS reported vs consensus: exact amount, beat/miss in € or $ and %
+   - Revenue reported vs consensus: exact $ beat/miss and %
+   - EPS reported vs consensus: exact $ beat/miss and %
    - Most important segment result vs estimate
    - Next quarter guidance vs Street consensus
    - CFO/CEO key statement (exact quote ≤20 words if possible)
    - Stock price reaction (% change after-hours or next session)
+   - Report date (YYYY-MM-DD)
 
-2. **ANALYST ACTIONS — 2 searches per company**:
-   "{comp_a} analyst upgrade downgrade price target 2025 2026"
-   "{comp_a} price target raised lowered 2026"
-   "{comp_b} analyst upgrade downgrade price target 2025 2026"
-   "{comp_b} price target raised lowered 2026"
+2. **ANALYST ACTIONS — 1-2 searches per company**:
+   "[company name] analyst upgrade downgrade price target [current year]"
    REQUIRED fields per action (mark N/A if not found):
-   - Date (YYYY-MM-DD), firm name, action (upgrade/downgrade/initiation/target change)
+   - Date, firm name, action (upgrade/downgrade/initiation/target change)
    - New rating, new price target, prior price target
    - Stated reason (≤15 words)
-   Collect 3-4 most recent actions per company. If none found: mark N/A.
+   Collect 2-3 most recent actions per company. If none found: mark N/A.
 
-3. **MARKET DEBATE — 2 searches**:
-   "{comp_a} {comp_b} {sector} outlook risks 2026"
-   "{comp_a} {comp_b} competitive comparison investor concerns 2026"
+3. **MARKET DEBATE — 2 searches, do not skip**:
+   "[sector] AI capex sustainability DeepSeek bubble [current year]"
+   "[company A] vs [company B] ASIC GPU competitive threat [current year]"
    REQUIRED fields (mark N/A if not found):
-   - Primary market fear for this pair (specific concern with number if possible)
+   - Primary market fear (specific — name the concern and the number behind it)
    - Bull counter-argument
    - Which leg more exposed to bear case and why (one sentence each)
-   - Any narrative shift in last 90 days (e.g. macro shift, earnings surprise, guidance change)
+   - Any narrative shift in last 90 days
 
 4. **UPCOMING CATALYSTS — 1 search**:
-   "{comp_a} {comp_b} next earnings date Q1 2026"
+   "[company A] [company B] next earnings date [current year]"
    Include: exact date, consensus EPS and revenue, key metric to watch.
 
 5. **SECTOR CONTEXT — 1 search**:
-   "{sector} sector outlook 2026"
+   "[sector] outlook [current year]"
    3-5 specific datapoints. No generic statements.
 
 Return structured data in the blocks defined in your system instructions.
@@ -1630,7 +1524,7 @@ async def fetch_claude_fs_analysis(
     long_positions: Optional[Dict[str, float]] = None,
     short_positions: Optional[Dict[str, float]] = None,
     failure_modes: Optional[List[Dict[str, Any]]] = None,
-    model: str = "claude-sonnet-4-6",
+    model: str = "claude-sonnet-4-5",
     mcp_connectors: Optional[List[Dict[str, str]]] = None,
 ) -> Optional[str]:
     """
@@ -1722,7 +1616,7 @@ async def fetch_claude_fs_analysis(
     tools.append({
         "type": "web_search_20250305",
         "name": "web_search",
-        "max_uses": 20,
+        "max_uses": 10,
     })
     
     has_mcp = len(mcp_servers) > 0
@@ -1763,7 +1657,7 @@ be WRONG? That's where alpha lives. Present consensus tables in your output.
     # ── Build request ──
     request_body = {
         "model": model,
-        "max_tokens": 8000,
+        "max_tokens": 4000,
         "temperature": 0.2,
         "system": system_prompt,
         "messages": [{"role": "user", "content": prompt}],
@@ -1817,37 +1711,6 @@ be WRONG? That's where alpha lives. Present consensus tables in your output.
             
             data = response.json()
             content = data.get("content", [])
-            stop_reason = data.get("stop_reason", "unknown")
-            
-            # ── DIAGNOSTIC LOGGING ──
-            # Save full Claude FS response to a file for debugging
-            import json as _json
-            _log_path = "/tmp/claude_fs_debug.json"
-            try:
-                _log = {
-                    "stop_reason": stop_reason,
-                    "model": model,
-                    "usage": data.get("usage", {}),
-                    "block_types": [b.get("type") for b in content],
-                    "blocks": []
-                }
-                for b in content:
-                    btype = b.get("type")
-                    if btype == "text":
-                        _log["blocks"].append({"type": "text", "text": b.get("text", "")})
-                    elif btype == "tool_use":
-                        _log["blocks"].append({"type": "tool_use", "name": b.get("name"), "input": b.get("input", {})})
-                    elif btype == "tool_result":
-                        _log["blocks"].append({"type": "tool_result", "content_preview": str(b.get("content", ""))[:500]})
-                    else:
-                        _log["blocks"].append({"type": btype})
-                with open(_log_path, "w") as _f:
-                    _json.dump(_log, _f, indent=2, default=str)
-                logger.info(f"Claude FS debug log saved to {_log_path}")
-            except Exception as _le:
-                logger.warning(f"Could not save debug log: {_le}")
-            
-            logger.info(f"Claude FS stop_reason={stop_reason}, blocks={[b.get('type') for b in content]}")
             
             # Extract text, count tool uses
             analysis_parts = []
@@ -1860,38 +1723,17 @@ be WRONG? That's where alpha lives. Present consensus tables in your output.
                         analysis_parts.append(text)
                 elif block.get("type") == "web_search_tool_result":
                     search_count += 1
-                elif block.get("type") == "server_tool_use":
-                    search_count += 1  # count server-side tool calls
                 elif block.get("type") == "mcp_tool_use":
                     mcp_tool_count += 1
                 elif block.get("type") == "mcp_tool_result":
+                    # MCP results may contain useful text we should capture
                     mcp_content = block.get("content", [])
                     for mc in mcp_content:
                         if mc.get("type") == "text" and mc.get("text", "").strip():
-                            pass  # Claude synthesizes this
-
-            # Join: small fragments (< 100 chars) are inline continuations — single newline.
-            # Larger blocks are separate sections — double newline.
-            joined_parts = []
-            for i, part in enumerate(analysis_parts):
-                if i == 0:
-                    joined_parts.append(part)
-                elif len(part) < 80 and not part.startswith("#") and not part.startswith("##"):
-                    # Tiny fragment — likely a continuation of previous field
-                    joined_parts[-1] = joined_parts[-1] + "\n" + part
-                else:
-                    joined_parts.append(part)
-            analysis = "\n\n".join(joined_parts)
+                            # Don't add raw MCP data — Claude will synthesize it
+                            pass
             
-            # Strip planning chatter — keep only structured data blocks.
-            # Claude FS emits narration like "I'll execute searches now..." as text blocks
-            # before the actual structured output. GPT only needs the data.
-            if analysis and "###" in analysis:
-                first_block = analysis.find("###")
-                if first_block > 0:
-                    stripped = analysis[first_block:]
-                    logger.info(f"Claude FS: stripped {first_block} chars of planning chatter, {len(stripped)} chars of structured data remain")
-                    analysis = stripped
+            analysis = "\n\n".join(analysis_parts)
             
             if not analysis or len(analysis) < 100:
                 logger.warning("Claude FS: response too short — falling back")
@@ -2049,7 +1891,7 @@ async def _claude_fs_fallback_websearch(
                     "max_tokens": 3000,
                     "temperature": 0.2,
                     "system": system_prompt,
-                    "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 20}],
+                    "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 10}],
                     "messages": [{"role": "user", "content": prompt}],
                 },
             )
@@ -2133,29 +1975,23 @@ def build_decision_brief_prompt(
     fundamental_data: Optional[Dict[str, Dict[str, Any]]] = None,
     claude_fs_analysis: Optional[str] = None,
     deterministic_decision: Optional[Dict[str, Any]] = None,
-    is_equity_pair: bool = True,
 ) -> str:
     from datetime import date as _date
     today_str = _date.today().strftime("%Y-%m-%d")
-
+    
     portfolio_comp = ""
     if long_positions:
         portfolio_comp += "LONG: " + ", ".join([f"{t} ({w:.0%})" for t, w in long_positions.items()]) + "\n"
     if short_positions:
         portfolio_comp += "SHORT: " + ", ".join([f"{t} ({w:.0%})" for t, w in short_positions.items()])
-
+    
+    # Detect asset class to adapt language (equity vs crypto vs mixed)
     all_tickers = list((long_positions or {}).keys()) + list((short_positions or {}).keys())
     asset_class = _detect_asset_class(all_tickers)
-
-    # Gate FUNDAMENTAL ANALYSIS section and section naming on is_equity_pair
-    if is_equity_pair:
-        section_naming = "**SECTION NAMING: Write EXACTLY TWO top-level sections in this order: '## TRADE ANALYSIS' then '## FUNDAMENTAL ANALYSIS'. Both are required.**"
-    else:
-        section_naming = "**SECTION NAMING: Write ONE top-level section: '## TRADE ANALYSIS'. Do NOT write a FUNDAMENTAL ANALYSIS section.**"
-
+    
     prompt = f"# DECISION BRIEF: {portfolio_name}\n\n"
     prompt += f"**TODAY'S DATE: {today_str}** — All temporal reasoning must use this date.\n"
-    prompt += section_naming + "\n\n"
+    prompt += "**SECTION NAMING: Write EXACTLY TWO top-level sections in this order: '## TRADE ANALYSIS' then '## FUNDAMENTAL ANALYSIS'. Both are required.**\n\n"
     prompt += f"## TRADE IDENTITY\n{portfolio_comp if portfolio_comp else 'Long/Short Equity Spread'}\n"
     
     # ── DETERMINISTIC DECISION LOCK (PROBLEM 4 FIX) ──
@@ -2446,20 +2282,6 @@ DeFi TVL, developer activity, and market structure (perps, options OI).
         else:
             prompt += "No strong pattern — range-bound.\n"
     
-    # ── DIAGNOSTIC LOGGING ──
-    if claude_fs_analysis:
-        logger.info(f"Claude FS → GPT: {len(claude_fs_analysis)} chars")
-        logger.info(f"Claude FS preview: {claude_fs_analysis[:300]!r}")
-        # Save to file for full inspection
-        try:
-            with open("/tmp/claude_fs_result.txt", "w") as _f:
-                _f.write(claude_fs_analysis)
-            logger.info("Full Claude FS result saved to /tmp/claude_fs_result.txt")
-        except Exception:
-            pass
-    else:
-        logger.warning("Claude FS → GPT: NO DATA (claude_fs_analysis is None/empty)")
-
     # ── CLAUDE FS RAW RESEARCH DATA (if available) ──
     if claude_fs_analysis:
         prompt += "\n## ══════════════════════════════════════════════════════════════\n"
@@ -2485,27 +2307,6 @@ Hypothesize WHY the spread moved. For crypto pairs, think about:
 - MACRO: BTC as macro asset (correlated with risk-on/off) vs alt-specific narratives
 Name the most probable driver and state whether temporary (supports MR) or structural (exit/reverse).
 Do NOT use equity language — crypto has no earnings, no P/E, no analyst ratings."""
-    elif not is_equity_pair:
-        driving_section = """### WHAT'S DRIVING THE SPREAD (5-8 sentences — EARN YOUR FEE)
-Hypothesize WHY one leg outperforms the other. These are ETFs, commodities, or rates instruments.
-
-STRICT PROHIBITION: Do NOT mention or use any of the following:
-- P/E, P/B, price-to-book, EV/EBITDA, operating margins, EPS, earnings, analyst ratings
-- Any accounting multiple or company-level fundamental metric
-- "Fundamentals favor [ticker]" in the context of valuation ratios
-
-FOCUS EXCLUSIVELY ON:
-- MACRO: Real interest rates, inflation expectations, USD strength/weakness (cite DXY level),
-  risk-on/risk-off flows, central bank policy path
-- COMMODITY DYNAMICS (if applicable): Industrial vs safe-haven demand split, supply constraints,
-  seasonal inventory patterns, gold/silver ratio vs historical range
-- RATES/BONDS (if applicable): Yield curve shape, real yield differentials, duration positioning
-- ETF FLOWS & POSITIONING: COT data, fund flow direction, premium/discount to NAV
-- RELATIVE VALUE: Where is the spread/ratio vs its 1-year historical range? Mean-reverting or trending?
-- MOMENTUM: Which leg is closer to its 52-week high/low? (use the % figures from the data)
-
-SYNTHESIZE: Name the single most probable driver and state whether it is temporary
-(supports mean reversion) or structural (supports exit or reversing the trade)."""
     else:
         driving_section = """### WHAT'S DRIVING THE SPREAD (5-8 sentences — EARN YOUR FEE)
 Hypothesize WHY one stock outperforms the other. Use ALL the fundamental data dimensions.
@@ -2541,46 +2342,7 @@ After the dimensional analysis:
   INCLUDE upcoming catalysts: "Next earnings on [date] — a potential inflection point."
 DATA QUALITY: If any metric was flagged as distorted, DO NOT use it. Say why.
 If no fundamental data provided, use your knowledge but flag uncertainty."""
-
-    # ── WHAT WOULD CHANGE — two completely separate templates by asset class ──
-    if is_equity_pair:
-        what_would_change_block = """### WHAT WOULD CHANGE THIS VIEW
-
-Provide 3–4 concrete catalysts that would invalidate the current thesis.
-
-Allowed catalysts:
-- Earnings releases (name the company, quarter, and threshold: "AVGO Q1 FY2026 gross margin above 78%")
-- Guidance revisions (specific metric and direction)
-- Regulatory or legal decisions affecting the sector
-- Corporate actions: M&A, spin-off, buyback acceleration
-- Analyst consensus shifts (e.g., consensus drops below 2.0 for ticker)
-- Macro shifts that materially impact sector earnings (Fed decision, CPI vs. estimate)
-
-Each bullet must include:
-- A specific named event or company
-- A measurable threshold or outcome
-- Why it would invalidate the current thesis or flip the spread direction"""
-    else:
-        what_would_change_block = """### WHAT WOULD CHANGE THIS VIEW
-
-Provide 3–4 concrete macro or structural catalysts. STRICTLY FOR NON-EQUITY ASSETS.
-
-DO NOT MENTION: earnings, quarters (Q1/Q2/Q3/Q4), results, guidance, EPS,
-analyst upgrades/downgrades, P/E, P/B, or any company-level accounting metric.
-This is an ETF/commodity/rates pair. None of those concepts apply.
-
-Allowed catalysts ONLY:
-- Macro data: "US CPI prints above X% — real silver demand thesis collapses"
-- Fed path: "Fed cuts by 50bps on [date] — real rates drop supports gold bid"
-- Dollar index: "DXY breaks below [level] sustained — USD weakness lifts both metals"
-- Ratio threshold: "Gold/silver ratio drops below 80 for 5+ sessions — spread mean-reverts"
-- Statistical signal: "ADF p-value below 0.05 for 20+ consecutive days"
-- ETF flows: "GLD sees weekly outflows >$1B for 2 straight weeks — institutional selling"
-- Volatility regime: "30-day realized vol drops below X% for 10 consecutive days"
-- Mean reversion: "Spread returns within 1σ of 60-day mean"
-
-Each bullet must include a measurable threshold and why it changes the thesis."""
-
+    
     prompt += f"""
 ## WRITE THE DECISION BRIEF
 
@@ -2678,17 +2440,22 @@ STRENGTHENED/UNCHANGED/WEAKENED ratings, reproduce it here.
 If ANY pillar is WEAKENED, flag it prominently and discuss in WHAT WOULD CHANGE.
 If overall CONVICTION from Claude FS is LOW, this should weight heavily toward EXIT/REDUCE.
 
-{what_would_change_block}
+### WHAT WOULD CHANGE THIS VIEW (2-3 bullets)
+Each bullet MUST contain at least one of:
+- Metric + threshold: "ADF p-value below 0.05 for 20+ consecutive days"
+- Time condition: "after 40 trading days of post-break data"  
+- Price/level: "spread returns within 1σ of 60d mean"
+- Named catalyst: "post Q2 earnings release on [date]" or for crypto: "after SOL token unlock on [date]", 
+  "BTC ETF daily inflows exceed $500M for 5 consecutive days", "SOL funding rate normalizes below 0.01%"
+- KEY RISK TO VERDICT from Claude FS: "[specific event/development that would flip fundamental view]"
+BANNED (system-level rule — these will be rejected every time):
+"if confidence improves" / "if metrics stabilize" / "if things improve" / 
+"if the regime shifts" / "with clear indicators" / "if fundamentals align" /
+"if volatility returns to historical norms" / "if market data indicates a reduction in crowding"
 
 ### BOTTOM LINE (one sentence)
 Action + sizing. 5-second decision.
-"""
 
-    # Equity pairs: remind GPT to write FA section. Non-equity: explicitly tell it to stop.
-    if is_equity_pair:
-        prompt += """\n⚠️ MANDATORY: After BOTTOM LINE you MUST write ## FUNDAMENTAL ANALYSIS.
-Do NOT stop. Budget: TRADE ANALYSIS ≤550 words, FUNDAMENTAL ANALYSIS 450–600 words.\n"""
-        prompt += """
 ## ─────────────────────────────────────────────────────────────
 ## FUNDAMENTAL ANALYSIS
 ## ─────────────────────────────────────────────────────────────
@@ -2711,10 +2478,6 @@ RULE 3: Do NOT write "analysts are bullish on NVDA" — write the specific firm,
 RULE 4: Do NOT write "NVIDIA has strong growth" — write "NVIDIA grew revenue 62.5% YoY"
         citing the specific figure from (B), or the figure from (A) if more recent.
 RULE 5: If (A) and (B) conflict on a number, use (A) as more recent and note discrepancy.
-RULE 6 — CRITICAL: Source (B) contains ANNUAL/TTM metrics. Do NOT use them in The Setup
-        as if they are quarterly earnings results. The Setup requires data from source (A) only.
-        If source (A) has no earnings data, write: "Quarterly earnings detail unavailable
-        — see Valuation & Analyst Positioning below for available fundamental context."
 
 Violating these rules produces false information that could cause real financial harm.
 
@@ -2798,25 +2561,20 @@ If you cannot find 4 real catalyst bullets from source (A), write fewer bullets.
 
 Exactly 3 lines. No more.
 
-CONVICTION: [HIGH / MEDIUM / LOW] — [one sentence citing the ACTUAL data driving
-this level — look at source (A) and write what you actually found, e.g.:
-"LOW — Hermès beat revenue by 0.5% but missed EPS by 7.5%; LVMH missed EPS by 31%
-yet both stocks moved in unexpected directions, suggesting sentiment dominates"
-NOT the generic example above — write what the data actually shows]
+CONVICTION: [HIGH / MEDIUM / LOW] — [one sentence: the specific data point driving
+this conviction level — e.g. "LOW — earnings beat on both sides but opposite market
+reactions suggest the spread driver is sentiment, not fundamentals"]
 VERDICT: "Fundamentals favor [LONG ticker / SHORT ticker / NEITHER] — [one sentence
 citing a specific number or event from sources A or B that drives this view]."
 KEY RISK: [One specific development with a name, date, or threshold that would flip
-this verdict — must include company name + date + specific metric]
+this verdict — e.g. "AVGO March 4 gross margin guidance above 78% would eliminate
+the margin compression thesis and shift fundamental support to the long leg"]
 
 BANNED in Fundamental Verdict:
-- "earnings beat on both sides" — verify against source (A), one may have missed
-- Generic KEY RISK like "if results deviate from expectations" — name metric + date
-
-QUARTERLY vs ANNUAL — CRITICAL DISTINCTION:
-In The Setup, only cite QUARTERLY earnings (Q4, Q3 etc.) vs quarterly consensus.
-Full-year / FY figures (e.g. FY2025 €80.8B) are annual — label them clearly as
-"FY2025 full-year" not as a quarterly result. If you only have annual data and no
-quarterly breakdown, say so explicitly rather than presenting annual as quarterly.
+- Copy-pasted boilerplate that doesn't match the actual data (e.g. writing "earnings
+  beat on both sides" when one company missed — verify against source (A) first)
+- Generic KEY RISK like "if results deviate from expectations" — name the specific
+  metric, threshold, and date
 
 ## FINAL CONSISTENCY SCAN (before submitting)
 
@@ -2837,12 +2595,6 @@ quarterly breakdown, say so explicitly rather than presenting annual as quarterl
 
 If ANY contradiction found: FIX IT before submitting.
 """
-
-    else:
-        # Non-equity: no FA section
-        prompt += "\n⚠️ STOP HERE. Do NOT write a FUNDAMENTAL ANALYSIS section.\n"
-        prompt += "This is a non-equity pair (ETF/commodity/rates). No earnings, no P/E, no analyst actions.\n"
-
     return prompt
 
 
@@ -3006,7 +2758,6 @@ async def generate_memo(
     fundamental_data: Optional[Dict[str, Dict[str, Any]]] = None,
     claude_fs_analysis: Optional[str] = None,
     deterministic_decision: Optional[Dict[str, Any]] = None,
-    is_equity_pair: bool = True,
 ) -> str:
     if api_key is None:
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -3030,81 +2781,25 @@ async def generate_memo(
             fundamental_data=fundamental_data,
             claude_fs_analysis=claude_fs_analysis,
             deterministic_decision=deterministic_decision,
-            is_equity_pair=is_equity_pair,
         )
         logger.info(f"Generating decision brief via {model}...")
-        logger.info(f"GPT prompt: {len(prompt)} chars, FA section present: {'FUNDAMENTAL ANALYSIS' in prompt}, Claude FS data: {bool(claude_fs_analysis)}")
         response = await client.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
             temperature=0.4,
-            max_tokens=7000,
+            max_tokens=3500,
         )
-        memo = response.choices[0].message.content or ""
-        finish_reason = response.choices[0].finish_reason
-        import re as _re
-        _FUND_RE = _re.compile(r"^##\s*FUNDAMENTAL\s*ANALYSIS", _re.MULTILINE | _re.IGNORECASE)
-        has_fund = bool(_FUND_RE.search(memo))
-        logger.info(f"GPT finish_reason={finish_reason}, output={len(memo)} chars, FA in output: {has_fund}")
-
-        # ── Second pass: FA-only call if GPT truncated or skipped the section ──
-        if is_equity_pair and not has_fund and claude_fs_analysis:
-            reason_label = "truncated (finish_reason=length)" if finish_reason == "length" else "omitted FA section"
-            logger.warning(f"GPT {reason_label} — running second pass for FUNDAMENTAL ANALYSIS only")
-            _fa_prompt = (
-                "You are writing ONLY the ## FUNDAMENTAL ANALYSIS section of a decision brief.\n"
-                "The TRADE ANALYSIS has already been written. Your job is to write the fundamental section.\n\n"
-                "RAW RESEARCH DATA (from web search):\n"
-                f"{claude_fs_analysis}\n\n"
-                "Now write ## FUNDAMENTAL ANALYSIS following these sections exactly:\n"
-                "### The Setup — earnings beats/misses vs consensus, stock reactions, 2 analyst actions with targets\n"
-                "### Valuation & Analyst Positioning — P/E gap, margin gap, growth differential, consensus ratings\n"
-                "### Market Narrative & Positioning — what the market is debating, which leg is exposed\n"
-                "### What to Watch — 3-5 bullets, each with real date + spread implication (no generic bullets)\n"
-                "### Fundamental Verdict — exactly 3 lines: CONVICTION / VERDICT / KEY RISK\n\n"
-                "RULES: Use only data from RAW RESEARCH DATA above. Write [data unavailable] if not found.\n"
-                "Do NOT use annual/TTM metrics as quarterly earnings. Flowing prose, no bullet-point paragraphs.\n"
-                "Start your response with: ## FUNDAMENTAL ANALYSIS"
-            )
-            try:
-                fa_response = await client.chat.completions.create(
-                    model=model,
-                    messages=[{"role": "user", "content": _fa_prompt}],
-                    temperature=0.3,
-                    max_tokens=2500,
-                )
-                fa_text = (fa_response.choices[0].message.content or "").strip()
-                if fa_text and len(fa_text) > 200:
-                    memo = memo.strip() + "\n\n" + fa_text
-                    logger.info(f"Second pass FA: {len(fa_text)} chars added")
-                else:
-                    logger.warning("Second pass FA returned too little content — keeping memo as-is")
-            except Exception as _e:
-                logger.warning(f"Second pass FA call failed: {_e}")
-
+        memo = response.choices[0].message.content
+        logger.info("Decision brief generated successfully")
+        
         # ── TRADE ANALYSIS: rename only, change nothing else ──
+        import re as _re
         memo = _re.sub(r'(?i)^#{1,3}\s*(AI\s+Trade\s+Analysis|Trade\s+Analysis|Decision\s+Brief|Trading\s+Decision)\b', '## TRADE ANALYSIS', memo, count=1, flags=_re.MULTILINE)
         if not _re.search(r'^##\s+TRADE ANALYSIS', memo, flags=_re.MULTILINE):
             memo = '## TRADE ANALYSIS\n\n' + memo
-
-        # ── Non-equity sanitizer: strip any leaked equity language ──
-        if not is_equity_pair:
-            _FORBIDDEN_TERMS = [
-                "earnings", "quarterly results", "results release", "guidance", " EPS",
-                "Q1 20", "Q2 20", "Q3 20", "Q4 20",  # catches "Q2 2026" etc
-                " P/E", "P/B", "price-to-book", "price to book", "EV/EBITDA",
-                "operating margin", "analyst upgrade", "analyst downgrade",
-                "analyst rating", "analyst consensus", "analyst action",
-            ]
-            lines = memo.split("\n")
-            cleaned_lines = [
-                line for line in lines
-                if not any(term.lower() in line.lower() for term in _FORBIDDEN_TERMS)
-            ]
-            cleaned = _re.sub(r'\n{3,}', '\n\n', "\n".join(cleaned_lines)).strip()
-            if cleaned != memo:
-                logger.info(f"Non-equity sanitizer: removed {len(memo)-len(cleaned)} chars of equity language")
-            memo = cleaned
+        
+        # NOTE: Claude FS fundamental HTML is rendered and placed by report.py
+        # as a first-class section (PROBLEM 1 FIX). No string injection here.
         
         return memo
     except ImportError:

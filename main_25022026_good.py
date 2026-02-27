@@ -319,7 +319,6 @@ async def analyze(
     request: AnalysisRequest,
     user: ClerkUser = Depends(check_rate_limit),
     x_openai_key: Optional[str] = Header(None, alias="X-OpenAI-Key"),
-    x_anthropic_key: Optional[str] = Header(None, alias="X-Anthropic-Key"),
 ):
     logger.info(f"User {user.user_id} requested analysis")
     
@@ -330,10 +329,7 @@ async def analyze(
         DataFetchError, InsufficientDataError,
     )
     from engine.stats_analysis import calculate_enhanced_statistics, calculate_memo_stats
-    from engine.memo import (
-        generate_memo, fetch_pair_fundamentals, fetch_claude_fs_analysis,
-        _classify_is_equity_pair, render_claude_fs_html, compute_deterministic_decision,
-    )
+    from engine.memo import generate_memo, fetch_pair_fundamentals
     from engine.report import generate_html_report
     
     logger.info(f"Starting analysis for {len(request.positions)} positions")
@@ -449,10 +445,6 @@ async def analyze(
         except Exception:
             memo_stats['cvar_95'] = None
     
-    # Add number of trading days for expected daily return calculation
-    if 'n_trading_days' not in memo_stats:
-        memo_stats['n_trading_days'] = len(portfolio_returns.daily_returns.dropna())
-    
     # Step 9: Generate charts
     logger.info("Generating charts...")
     charts = create_all_charts(
@@ -479,69 +471,6 @@ async def analyze(
             fundamental_data = {}
     
     # =========================================================================
-    # Step 9b-detect: Classify whether this is a true equity pair
-    # Deterministic non-equity detection — defaults to equity for unknown tickers.
-    # No API call needed: checks against known ETF/commodity/crypto/bond lists.
-    # =========================================================================
-    is_equity_pair = False
-    try:
-        is_equity_pair = _classify_is_equity_pair(tickers=portfolio.tickers)
-        logger.info(f"Asset classification: is_equity_pair={is_equity_pair} for {portfolio.tickers}")
-    except Exception as e:
-        logger.warning(f"Equity classification failed (non-fatal): {e}")
-        is_equity_pair = True  # default to equity on error — better to run full analysis
-
-    # Hard-gate: zero out fundamental_data for non-equity so P/B, P/E etc never reach the LLM
-    if not is_equity_pair and fundamental_data:
-        logger.info("Non-equity pair: clearing fundamental_data to prevent P/B, P/E leakage")
-        fundamental_data = {}
-
-    # =========================================================================
-    # Step 9c: Claude FS fundamental research (equity pairs only)
-    # =========================================================================
-    claude_fs_result = None
-    if is_equity_pair and request.include_ai_memo and fundamental_data and len(fundamental_data) >= 2:
-        anthropic_key = x_anthropic_key or os.environ.get("ANTHROPIC_API_KEY")
-        if anthropic_key:
-            logger.info(f"DIAG: Anthropic key present ({len(anthropic_key)} chars), calling Claude FS...")
-            try:
-                logger.info("Running Claude FS fundamental research (equity pair)...")
-                claude_fs_result = await fetch_claude_fs_analysis(
-                    fundamental_data=fundamental_data,
-                    anthropic_api_key=anthropic_key,
-                    regime_summary=regime_summary.to_dict(),
-                    enhanced_stats=memo_stats,
-                    long_positions=portfolio.long_weights,
-                    short_positions=portfolio.short_weights,
-                    failure_modes=_extract_failure_modes(validity_output),
-                )
-                if claude_fs_result:
-                    logger.info(f"Claude FS analysis: {len(claude_fs_result)} chars — FIRST 200: {claude_fs_result[:200]!r}")
-                else:
-                    logger.warning("DIAG: Claude FS returned None/empty — FA section will use GPT training knowledge only")
-            except Exception as e:
-                logger.warning(f"Claude FS analysis failed (non-fatal): {e}")
-                claude_fs_result = None
-        else:
-            logger.warning("DIAG: No Anthropic API key found — Claude FS skipped entirely")
-    
-    # =========================================================================
-    # Step 9d: Deterministic decision (PROBLEM 4 FIX)
-    # Decision logic runs deterministically BEFORE the LLM.
-    # The LLM explains the decision — it cannot change it.
-    # =========================================================================
-    failure_modes_for_memo = _extract_failure_modes(validity_output)
-    validity_dict = validity_output.to_dict()
-    
-    deterministic_decision = compute_deterministic_decision(
-        validity_data=validity_dict,
-        failure_modes=failure_modes_for_memo,
-        regime_summary=regime_summary.to_dict(),
-        enhanced_stats=memo_stats,
-    )
-    logger.info(f"Deterministic decision: {deterministic_decision['decision']} ({deterministic_decision['size_pct']}%)")
-    
-    # =========================================================================
     # Step 10: Generate AI memo (DECISION BRIEF with FM signals)
     # =========================================================================
     memo = None
@@ -549,6 +478,10 @@ async def analyze(
         logger.info("Generating decision brief memo...")
         openai_key = x_openai_key or os.environ.get("OPENAI_API_KEY")
         if openai_key:
+            # Extract failure mode signals from validity output for the memo
+            validity_dict = validity_output.to_dict()
+            failure_modes_for_memo = _extract_failure_modes(validity_output)
+            
             memo = await generate_memo(
                 enhanced_stats=memo_stats,
                 regime_summary=regime_summary.to_dict(),
@@ -559,52 +492,13 @@ async def analyze(
                 model="gpt-4o",
                 validity_data=validity_dict,
                 failure_modes=failure_modes_for_memo,
-                pair_state=validity_output.state,
+                pair_state=validity_output.state,  # VALID/DEGRADED/INVALID
                 fundamental_data=fundamental_data,
-                claude_fs_analysis=claude_fs_result,
-                deterministic_decision=deterministic_decision,
-                is_equity_pair=is_equity_pair,
             )
     
     # Step 11: Generate HTML report
     logger.info("Generating HTML report...")
-
-    as_of_date = request.analysis_end_date or datetime.now().strftime("%Y-%m-%d")
-
-    # ── Split GPT output into TRADE ANALYSIS + FUNDAMENTAL ANALYSIS ──
-    import re as _re
-    _FUND_RE = _re.compile(r"^##\s*FUNDAMENTAL\s*ANALYSIS\s*$", _re.MULTILINE | _re.IGNORECASE)
-    claude_fs_html = None
-
-    if is_equity_pair and memo:
-        m = _FUND_RE.search(memo)
-        if m:
-            trade_part = memo[:m.start()].strip()
-            fundamental_raw = memo[m.end():].strip()
-            memo = trade_part
-            logger.info(f"Split successful — trade: {len(trade_part)} chars, fundamental: {len(fundamental_raw)} chars")
-            try:
-                claude_fs_html = render_claude_fs_html(fundamental_raw, as_of_date=as_of_date)
-            except Exception as e:
-                logger.warning(f"Fundamental section render failed: {e}")
-                claude_fs_html = None
-        elif claude_fs_result:
-            logger.info("FA header not found in GPT output — falling back to raw Claude FS")
-            try:
-                claude_fs_html = render_claude_fs_html(claude_fs_result, as_of_date=as_of_date)
-            except Exception as e:
-                logger.warning(f"Claude FS HTML render failed: {e}")
-                claude_fs_html = None
-    elif memo:
-        # Non-equity: strip any FA section GPT wrote despite instructions
-        m = _FUND_RE.search(memo)
-        if m:
-            logger.info("Non-equity: stripping leaked FUNDAMENTAL ANALYSIS from GPT output")
-            memo = memo[:m.start()].strip()
-    # Non-equity: claude_fs_html stays None
-    
-    # Report order: Validity → Regime → TRADE ANALYSIS → FUNDAMENTAL ANALYSIS → Disclaimer
-    report_kwargs = dict(
+    html_report = generate_html_report(
         enhanced_stats=memo_stats,
         regime_summary=regime_summary.to_dict(),
         memo_text=memo,
@@ -616,11 +510,7 @@ async def analyze(
         distribution_chart_base64=charts.get("distribution"),
         validity_data=validity_output.to_dict(),
         analysis_period_days=request.analysis_period_days,
-        claude_fs_html=claude_fs_html,              # First-class param — no injection
-        deterministic_decision=deterministic_decision,  # For summary display in report header
     )
-    
-    html_report = generate_html_report(**report_kwargs)
     
     logger.info("Analysis complete!")
     
@@ -647,7 +537,6 @@ async def analyze(
             "recent_signal": str(signals.iloc[-1]) if len(signals) > 0 else "HOLD",
         },
         "memo": memo,
-        "fundamental_research": claude_fs_result,  # Claude FS standalone section
         "html_report": html_report,
         "charts": {
             "regime": (charts.get("regime", "")[:100] + "...") if charts.get("regime") else "",
@@ -665,9 +554,8 @@ async def analyze_report(
     request: AnalysisRequest,
     user: ClerkUser = Depends(check_rate_limit),
     x_openai_key: Optional[str] = Header(None, alias="X-OpenAI-Key"),
-    x_anthropic_key: Optional[str] = Header(None, alias="X-Anthropic-Key"),
 ):
-    result = await analyze(request, user, x_openai_key, x_anthropic_key)
+    result = await analyze(request, user, x_openai_key)
     content = json.loads(result.body)
     return HTMLResponse(content=content["html_report"])
 
@@ -680,7 +568,6 @@ async def analyze_report(
 async def analyze_backtest(
     request: AnalysisRequest,
     x_openai_key: Optional[str] = Header(None, alias="X-OpenAI-Key"),
-    x_anthropic_key: Optional[str] = Header(None, alias="X-Anthropic-Key"),
 ):
     """
     Same as /analyze but without Clerk auth.
@@ -690,7 +577,7 @@ async def analyze_backtest(
         dummy_user = ClerkUser(user_id="backtest", session_id="backtest")
     except TypeError:
         dummy_user = ClerkUser(user_id="backtest")
-    return await analyze(request, dummy_user, x_openai_key, x_anthropic_key)
+    return await analyze(request, dummy_user, x_openai_key)
 
 
 # =============================================================================
@@ -744,174 +631,6 @@ async def quick_signal(payload: QuickSignalRequest):
         "volatility": vol,
         "risk_notes": risk_notes[:6],
     }
-
-
-# =============================================================================
-# PORTFOLIO ANALYSIS ENDPOINTS
-# (Integrates wealth management & equity research plugin methodologies)
-# =============================================================================
-
-class PortfolioPairInput(BaseModel):
-    pair_id: str = Field(..., description="e.g. NVDA_AVGO")
-    long_ticker: str = Field(..., description="Long leg ticker")
-    short_ticker: str = Field(..., description="Short leg ticker")
-    current_value: float = Field(..., description="Current notional value")
-    initial_value: float = Field(0, description="Initial allocation value")
-    pnl: float = Field(0, description="Unrealized P&L")
-    return_pct: float = Field(0, description="Return as decimal")
-    sharpe_ratio: float = Field(0, description="Sharpe ratio")
-    max_drawdown: float = Field(0, description="Max drawdown as decimal")
-    regime: str = Field("unknown", description="Current regime mode")
-    validity_score: float = Field(0, description="Validity score 0-100")
-    failure_modes_active: int = Field(0, description="Count of active FMs")
-    adf_pvalue: Optional[float] = Field(None, description="ADF p-value")
-    spread_zscore: float = Field(0, description="Current spread z-score")
-    half_life: float = Field(0, description="Mean reversion half-life (days)")
-    correlation: float = Field(0, description="Pair correlation")
-    sector: str = Field("Unknown", description="Sector classification")
-    entry_date: Optional[str] = Field(None, description="ISO date of entry")
-    unrealized_pnl: float = Field(0, description="Unrealized P&L for TLH")
-    cost_basis: float = Field(0, description="Cost basis for TLH")
-    days_in_current_regime: int = Field(0)
-    recent_return: float = Field(0, description="30-day return")
-
-
-class PortfolioHealthRequest(BaseModel):
-    pairs: List[PortfolioPairInput]
-    target_allocations: Optional[Dict[str, float]] = Field(None, description="pair_id → target weight (0-1)")
-    rebalance_band: float = Field(0.05, description="Drift threshold (default ±5%)")
-    account_type: str = Field("taxable", description="taxable, ira, or roth")
-    benchmark_return: Optional[float] = Field(None, description="Benchmark return for comparison")
-    include_tlh: bool = Field(True, description="Include tax-loss harvesting scan")
-    marginal_tax_rate: float = Field(0.37)
-    ltcg_rate: float = Field(0.20)
-
-
-class PortfolioScreenRequest(BaseModel):
-    candidates: List[PortfolioPairInput]
-    screen_type: str = Field("quality", description="quality, value, momentum, contrarian")
-    min_validity: float = Field(60.0)
-    max_failure_modes: int = Field(2)
-    min_half_life: int = Field(5)
-    max_half_life: int = Field(120)
-
-
-@app.post("/portfolio/health")
-async def portfolio_health(payload: PortfolioHealthRequest):
-    """
-    Comprehensive portfolio health check.
-    
-    Returns: drift analysis, thesis review, performance summary, 
-    rebalancing recommendations, and tax-loss harvesting opportunities.
-    
-    Integrates methodologies from Claude FS Wealth Management plugin:
-    - Portfolio Rebalance (drift analysis, tax-aware trades)
-    - Tax-Loss Harvesting (opportunity scanning)
-    - Client Report (performance summary)
-    - Thesis Tracker (pillar-based validation)
-    """
-    from portfolio_analysis import (
-        analyze_portfolio_drift,
-        generate_rebalancing_trades,
-        scan_tax_loss_opportunities,
-        generate_portfolio_summary,
-        portfolio_thesis_review,
-    )
-    
-    pairs_data = [p.model_dump() for p in payload.pairs]
-    
-    # 1. Drift analysis
-    drift = analyze_portfolio_drift(
-        pairs=pairs_data,
-        target_allocations=payload.target_allocations,
-        rebalance_band=payload.rebalance_band,
-    )
-    
-    # 2. Thesis review
-    thesis = portfolio_thesis_review(pairs=pairs_data)
-    
-    # 3. Performance summary
-    performance = generate_portfolio_summary(
-        pairs=pairs_data,
-        benchmark_return=payload.benchmark_return,
-    )
-    
-    # 4. Rebalancing recommendations
-    rebalancing = generate_rebalancing_trades(
-        drift_analysis=drift,
-        account_type=payload.account_type,
-    )
-    
-    # 5. Tax-loss harvesting (optional)
-    tlh = None
-    if payload.include_tlh and payload.account_type == "taxable":
-        tlh = scan_tax_loss_opportunities(
-            pairs=pairs_data,
-            marginal_tax_rate=payload.marginal_tax_rate,
-            ltcg_rate=payload.ltcg_rate,
-        )
-    
-    return json_response({
-        "drift_analysis": drift,
-        "thesis_review": thesis,
-        "performance": performance,
-        "rebalancing": rebalancing,
-        "tax_loss_harvesting": tlh,
-    })
-
-
-@app.post("/portfolio/rebalance")
-async def portfolio_rebalance(payload: PortfolioHealthRequest):
-    """
-    Focused rebalancing endpoint — returns only drift + trade recs.
-    Lighter weight than full health check.
-    """
-    from portfolio_analysis import analyze_portfolio_drift, generate_rebalancing_trades
-    
-    pairs_data = [p.model_dump() for p in payload.pairs]
-    
-    drift = analyze_portfolio_drift(
-        pairs=pairs_data,
-        target_allocations=payload.target_allocations,
-        rebalance_band=payload.rebalance_band,
-    )
-    
-    rebalancing = generate_rebalancing_trades(
-        drift_analysis=drift,
-        account_type=payload.account_type,
-    )
-    
-    return json_response({
-        "drift_analysis": drift,
-        "rebalancing": rebalancing,
-    })
-
-
-@app.post("/portfolio/screen")
-async def portfolio_screen(payload: PortfolioScreenRequest):
-    """
-    Screen pair candidates using quantitative filters.
-    
-    Screen types (from equity research idea generation plugin):
-    - quality: High validity, low FMs, cointegrated
-    - value: Extreme z-scores, mean reversion opportunities
-    - momentum: Strong recent returns, trending
-    - contrarian: Recovering from stress, higher risk/reward
-    """
-    from portfolio_analysis import screen_pair_candidates
-    
-    candidates_data = [c.model_dump() for c in payload.candidates]
-    
-    result = screen_pair_candidates(
-        candidates=candidates_data,
-        screen_type=payload.screen_type,
-        min_validity=payload.min_validity,
-        max_failure_modes=payload.max_failure_modes,
-        min_half_life=payload.min_half_life,
-        max_half_life=payload.max_half_life,
-    )
-    
-    return json_response(result)
 
 
 if __name__ == "__main__":

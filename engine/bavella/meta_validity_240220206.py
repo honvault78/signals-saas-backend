@@ -271,28 +271,15 @@ class MetaValidityAssessor:
         variance_ratio: float,
         f_statistic: float,
         p_value: float,
-        rolling_z_var: float = 0.0,
-        cusum_sup: float = 0.0,
-        active_component_count: int = 1,
     ) -> DetectionConfidence:
-        """
-        Assess confidence in variance/volatility regime detection.
-        
-        V2: Incorporates rolling z-score and CUSUM signals alongside
-        the F-test. Multiple active components boost statistical power.
-        """
+        """Assess confidence in variance regime detection."""
         n = len(data)
-        
-        # Composite effect size: max of ratio log, z-score, CUSUM deviation
-        ratio_effect = abs(np.log(max(variance_ratio, 0.01)))
-        z_effect = abs(rolling_z_var) * 0.3 if rolling_z_var != 0 else 0.0
-        cusum_effect = max(0, cusum_sup - 0.85) * 0.5 if cusum_sup > 0 else 0.0
-        effect_size = max(ratio_effect, z_effect, cusum_effect)
+        effect_size = abs(np.log(max(variance_ratio, 0.01)))
         
         # Variance of F-statistic (approximation)
         var_f = 2 * f_statistic**2 / (n - 2) if n > 2 else 1.0
         
-        conf = DetectionConfidence.compute(
+        return DetectionConfidence.compute(
             sample_size=n,
             effect_size=effect_size,
             test_statistic=f_statistic,
@@ -300,23 +287,6 @@ class MetaValidityAssessor:
             variance_of_statistic=var_f,
             min_sample_required=40,
         )
-        
-        # Convergence bonus: multiple active components = stronger evidence
-        if active_component_count >= 2:
-            boosted_power = min(100, conf.statistical_power + 10)
-            boosted_overall = min(1.0, conf.overall + 0.05)
-            conf = DetectionConfidence(
-                overall=boosted_overall,
-                sample_sufficiency=conf.sample_sufficiency,
-                statistical_power=boosted_power,
-                window_stability=conf.window_stability,
-                decision_boundary_margin=conf.decision_boundary_margin,
-                noise_ratio=conf.noise_ratio,
-                level=conf.level,
-                concerns=conf.concerns,
-            )
-        
-        return conf
     
     @staticmethod
     def assess_structural_break(

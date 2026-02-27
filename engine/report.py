@@ -352,46 +352,89 @@ def generate_html_report(
     distribution_chart_base64: Optional[str] = None,
     validity_data: Optional[Dict[str, Any]] = None,
     analysis_period_days: int = 180,
+    claude_fs_html: Optional[str] = None,
+    deterministic_decision: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
     Generate a professional HTML investment memo report with embedded charts.
-    
-    NOW WITH BAVELLA v2.2 VALIDITY ANALYSIS AT THE TOP.
-    
+
+    Section order (fixed — no post-render injection):
+      1. Header + portfolio composition
+      2. Validity Analysis
+      3. Key Metrics
+      4. Current Market Regime
+      5. Charts (regime, performance, distribution)
+      6. Risk Metrics + Entry Point tables
+      7. Performance Summary
+      8. TRADE ANALYSIS (AI memo / Decision Brief)
+      9. FUNDAMENTAL ANALYSIS (Claude FS — claude_fs_html)
+     10. Disclaimer
+     11. Footer
+
     Parameters
     ----------
     enhanced_stats : Dict[str, Any]
-        Enhanced statistics dictionary
     regime_summary : Dict[str, Any]
-        Regime summary dictionary
     memo_text : Optional[str]
-        AI-generated memo text
+        AI-generated Trade Analysis (Decision Brief) text
     long_positions : Optional[Dict[str, float]]
-        Long position weights
     short_positions : Optional[Dict[str, float]]
-        Short position weights
     portfolio_name : str
-        Portfolio name for title
     regime_chart_base64 : Optional[str]
-        Base64-encoded regime chart PNG
     performance_chart_base64 : Optional[str]
-        Base64-encoded performance chart PNG
     distribution_chart_base64 : Optional[str]
-        Base64-encoded distribution chart PNG
     validity_data : Optional[Dict[str, Any]]
         Bavella v2.2 validity analysis results
     analysis_period_days : int
-        Actual analysis period for display
-        
+    claude_fs_html : Optional[str]
+        Pre-rendered HTML for the FUNDAMENTAL ANALYSIS section (from memo.render_claude_fs_html).
+        Placed after TRADE ANALYSIS. No injection — template-controlled.
+    deterministic_decision : Optional[Dict[str, Any]]
+        Pre-computed decision from compute_deterministic_decision().
+        Keys: decision, size_pct, rationale.
+        Used for the signal badge and header summary — not parsed from memo text.
+
     Returns
     -------
     str
         Complete HTML document
     """
     report_date = datetime.now().strftime('%B %d, %Y')
+    as_of_date = datetime.now().strftime('%Y-%m-%d')
     
-    # Parse signal from memo
-    signal_class, signal_text = _parse_signal_from_memo(memo_text)
+    # ── Signal badge — driven by deterministic_decision, NOT parsed from memo text ──
+    # Parsing memo text for the signal is fragile and wrong: the LLM should explain,
+    # not decide. compute_deterministic_decision() is the source of truth.
+    if deterministic_decision:
+        dd_action = deterministic_decision.get("decision", "HOLD")
+        dd_size   = deterministic_decision.get("size_pct", 100)
+        dd_rationale = deterministic_decision.get("rationale", "")
+        
+        if dd_action in ("ENTER", "HOLD") and dd_size >= 75:
+            signal_class = "signal-buy"
+        elif dd_action in ("EXIT", "REVERSE") or dd_size == 0:
+            signal_class = "signal-sell"
+        else:
+            signal_class = "signal-hold"
+        
+        if dd_action == "HOLD" and dd_size == 100:
+            signal_text = "HOLD"
+        elif dd_action == "REDUCE":
+            signal_text = f"REDUCE → {dd_size}%"
+        elif dd_action == "REVERSE":
+            signal_text = "REVERSE"
+        elif dd_action == "WAIT":
+            signal_text = "WAIT"
+        elif dd_action == "EXIT":
+            signal_text = "EXIT"
+        elif dd_action == "ENTER":
+            signal_text = "ENTER"
+        else:
+            signal_text = dd_action
+    else:
+        # Fallback: parse from memo text (legacy path — only used if engine decision missing)
+        signal_class, signal_text = _parse_signal_from_memo(memo_text)
+        dd_rationale = ""
     
     # Extract values for display
     rsi = regime_summary.get('rsi', 50)
@@ -517,6 +560,8 @@ def generate_html_report(
     
     html += '</div>'
     
+    # ── Decision badge removed from top — verdict shown at bottom after full report ──
+    
     # ==========================================================================
     # VALIDITY ANALYSIS SECTION (GOVERNS EVERYTHING - AT THE TOP)
     # ==========================================================================
@@ -527,12 +572,14 @@ def generate_html_report(
         html += validity_html
         html += '</div>'
     
-    # Conditional warning if degraded or broken
+    # Conditional warning if degraded or invalid
     if validity_data:
-        state = validity_data.get("state", "VALID")
-        if state == "DEGRADED":
+        # State may be under nested "validity" key (from to_dict())
+        _vd = validity_data.get("validity", validity_data)
+        state_check = _vd.get("state", validity_data.get("state", "VALID"))
+        if state_check == "DEGRADED":
             html += '<div class="conditional-warning">⚠️ <strong>Conditional Analysis:</strong> The metrics and signals below should be interpreted with caution due to detected structural instability.</div>'
-        elif state == "BROKEN":
+        elif state_check in ("INVALID", "BROKEN"):
             html += '<div class="conditional-warning" style="background: rgba(231, 76, 60, 0.1); border-color: rgba(231, 76, 60, 0.3); color: #e74c3c;">⛔ <strong>Historical Reference Only:</strong> The analysis below describes past behavior that may no longer apply under current conditions.</div>'
     
     # Key Metrics
@@ -604,10 +651,15 @@ def generate_html_report(
     html += f'<div class="metric-card"><div class="metric-value positive">{enhanced_stats.get("best_day", 0):.2%}</div><div class="metric-label">Best Day</div></div>'
     html += '</div></div>'
     
-    # Add memo if provided
+    # Add memo if provided — SECTION ORDER: Trade Analysis → Fundamental Analysis
     if memo_text:
-        html += '<div class="section"><div class="section-title">AI Trade Analysis</div>'
+        html += '<div class="section"><div class="section-title">TRADE ANALYSIS</div>'
         html += f'<div class="memo-content">{memo_text}</div></div>'
+    
+    # ── FUNDAMENTAL ANALYSIS — same container as TRADE ANALYSIS ──
+    if claude_fs_html and claude_fs_html.strip():
+        html += '<div class="section"><div class="section-title">FUNDAMENTAL ANALYSIS</div>'
+        html += f'<div class="memo-content">{claude_fs_html}</div></div>'
     
     # Disclaimer
     html += '''

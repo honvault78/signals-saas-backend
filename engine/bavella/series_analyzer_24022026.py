@@ -533,97 +533,25 @@ class SeriesAnalyzer:
         z_t = Z_t.pct_change().dropna() if request.series_type == SeriesType.PRICE else Z_t.diff().dropna()
         
         # =================================================================
-        # REGIME CONTEXT (hoisted — shared by FM1 and FM7)
-        # For pairs: ADF on the spread (computed once, used by both)
-        # For single: ADF on the return series
-        # =================================================================
-        spread_regime = None  # Will be set if pair
-        if request.is_pair:
-            try:
-                ref_data = request.to_array_2()
-                ref_Z_t = pd.Series(ref_data)
-                ref_z_t = (
-                    ref_Z_t.pct_change().dropna()
-                    if request.series_type == SeriesType.PRICE
-                    else ref_Z_t.diff().dropna()
-                )
-                spread_regime = self._compute_spread_regime(Z_t, ref_Z_t)
-            except Exception:
-                pass
-        
-        # =================================================================
-        # FM1: VOLATILITY REGIME SHIFT (V2 — regime-aware)
-        # Evidence keys: variance_ratio, f_statistic, p_value, log_ratio,
-        #   severity_A, severity_B, severity_C, dominant_component,
-        #   rolling_z_var, cusum_sup, cusum_significant,
-        #   direction, asymmetry_factor, mean_shift_sigma, mean_stable,
-        #   active_component_count, confidence_A/B/C, convergence_bonus,
-        #   regime_mode, regime_multiplier, regime_adjusted_severity
+        # FM1: VARIANCE REGIME SHIFT
+        # Evidence keys: variance_ratio, f_statistic, p_value,
+        #                log_ratio, mean_shift_sigma, mean_stable
         # =================================================================
         try:
-            # --- Determine regime context ---
-            if request.is_pair and spread_regime is not None:
-                fm1_regime = spread_regime
-                fm1_regime_source = "spread"
-            else:
-                fm1_regime = self._compute_series_regime(z_t)
-                fm1_regime_source = fm1_regime.get("source", "single_series")
-            
-            # --- Run detector (regime-agnostic internally) ---
             fm1_signal = self._fm1_detector.detect(z_t, Z_t)
-            
-            # --- Apply regime-aware severity adjustment ---
-            fm1_raw_severity = fm1_signal.severity
-            fm1_regime_multiplier = fm1_regime["severity_multiplier"]
-            fm1_adjusted_severity = fm1_raw_severity * fm1_regime_multiplier
-            
-            # --- Contextualized explanation ---
-            fm1_regime_mode = fm1_regime["mode"]
-            fm1_adf_p = fm1_regime["adf_pvalue"]
-            
-            if fm1_regime_multiplier < 1.0:
-                fm1_regime_note = (
-                    f" [regime: {fm1_regime_mode} (ADF p={fm1_adf_p:.3f}) "
-                    f"— severity reduced {fm1_regime_multiplier:.0%}, "
-                    f"raw={fm1_raw_severity:.0f}]"
-                )
-            else:
-                fm1_regime_note = (
-                    f" [regime: {fm1_regime_mode} (ADF p={fm1_adf_p:.3f}) "
-                    f"— full severity]"
-                )
-            
-            fm1_explanation = fm1_signal.explanation + fm1_regime_note
-            
-            # --- Merge regime into evidence ---
-            fm1_merged_evidence = dict(fm1_signal.evidence)
-            fm1_merged_evidence["regime_mode"] = fm1_regime_mode
-            fm1_merged_evidence["regime_adf_pvalue"] = float(fm1_adf_p)
-            fm1_merged_evidence["regime_multiplier"] = float(fm1_regime_multiplier)
-            fm1_merged_evidence["regime_source"] = fm1_regime_source
-            fm1_merged_evidence["regime_adjusted_severity"] = float(fm1_adjusted_severity)
-            # raw_severity is already in evidence from detector; alias for clarity
-            if "raw_severity" not in fm1_merged_evidence:
-                fm1_merged_evidence["raw_severity"] = float(fm1_raw_severity)
-            
-            # --- External confidence ---
             fm1_conf = MetaValidityAssessor.assess_variance_detection(
-                data,
-                fm1_merged_evidence.get("variance_ratio", 1.0),
-                fm1_merged_evidence.get("f_statistic", 1.0),
-                fm1_merged_evidence.get("p_value", 0.5),
-                fm1_merged_evidence.get("rolling_z_var", 0.0),
-                fm1_merged_evidence.get("cusum_sup", 0.0),
-                fm1_merged_evidence.get("active_component_count", 1),
+                data, 
+                fm1_signal.evidence.get("variance_ratio", 1.0),
+                fm1_signal.evidence.get("f_statistic", 1.0),
+                fm1_signal.evidence.get("p_value", 0.5),
             )
-            
             results.append(DetectorResult(
                 failure_mode=FailureMode.FM1_VARIANCE_REGIME,
-                detected=fm1_adjusted_severity > 15,
-                severity=fm1_adjusted_severity,
+                detected=fm1_signal.severity > 15,
+                severity=fm1_signal.severity,
                 confidence=fm1_conf,
-                explanation=fm1_explanation,
-                evidence=fm1_merged_evidence,
+                explanation=fm1_signal.explanation,
+                evidence=fm1_signal.evidence,
             ))
         except Exception as e:
             pass
@@ -797,12 +725,19 @@ class SeriesAnalyzer:
         # REQUIRES: A second series (pair) or multiple reference series
         # (basket). For single-series analysis, FM7 is skipped — this
         # is correct behavior, not a bug.
-        #
-        # NOTE: spread_regime and ref_z_t are hoisted above FM1 block.
         # =================================================================
-        if request.is_pair and spread_regime is not None:
+        if request.is_pair:
             try:
-                # ref_z_t already computed in hoisted block above
+                ref_data = request.to_array_2()
+                ref_Z_t = pd.Series(ref_data)
+                ref_z_t = (
+                    ref_Z_t.pct_change().dropna()
+                    if request.series_type == SeriesType.PRICE
+                    else ref_Z_t.diff().dropna()
+                )
+                
+                # --- Regime context: ADF on the spread ---
+                spread_regime = self._compute_spread_regime(Z_t, ref_Z_t)
                 
                 # --- Run detector (regime-agnostic) ---
                 fm7_signal = self._fm7_detector.detect(
@@ -995,70 +930,6 @@ class SeriesAnalyzer:
             "hurst": float(hurst),
             "severity_multiplier": severity_multiplier,
             "kill_switch_active": kill_switch_active,
-        }
-    
-    @staticmethod
-    def _compute_series_regime(z_t: "pd.Series") -> Dict[str, Any]:
-        """
-        Compute ADF-based regime for a single return series.
-        
-        Used by FM1 for single-stock and basket analysis (where no spread
-        exists). For pairs, FM1 reuses the spread_regime from FM7.
-        
-        Uses the BASELINE period (first 70%) to prevent the failure
-        itself from contaminating the regime assessment.
-        
-        Maps to the same 5-mode framework as _compute_spread_regime:
-            Strong Mean Reversion:  ADF p < 0.05   → multiplier 1.00
-            Mean Reversion:         ADF p < 0.20   → multiplier 1.00
-            Mixed Mode:             ADF p < 0.50   → multiplier 0.70
-            Trend Following:        ADF p < 0.80   → multiplier 0.40
-            Pure Trend:             ADF p >= 0.80  → multiplier 0.15
-        """
-        import pandas as pd
-        
-        z = z_t.dropna()
-        n = len(z)
-        
-        if n < 40:
-            return {
-                "mode": "UNKNOWN (insufficient data)",
-                "adf_pvalue": 1.0,
-                "severity_multiplier": 1.0,
-                "source": "single_series",
-            }
-        
-        # Use BASELINE period (first 70%) — matches detector split
-        baseline_end = int(n * 0.7)
-        baseline = z.iloc[:baseline_end].values
-        
-        adf_pvalue = 1.0
-        try:
-            from statsmodels.tsa.stattools import adfuller
-            adf_result = adfuller(baseline, autolag='AIC')
-            adf_pvalue = float(adf_result[1])
-        except Exception:
-            pass
-        
-        # Map to 5-mode framework — same thresholds as _compute_spread_regime
-        # Note: 0.40 for Trend Following (vs 0.35 in FM7) because variance
-        # expansion during trend is somewhat expected but still matters for sizing
-        if adf_pvalue < 0.05:
-            mode, multiplier = "STRONG_MEAN_REVERSION", 1.0
-        elif adf_pvalue < 0.20:
-            mode, multiplier = "MEAN_REVERSION", 1.0
-        elif adf_pvalue < 0.50:
-            mode, multiplier = "MIXED_MODE", 0.70
-        elif adf_pvalue < 0.80:
-            mode, multiplier = "TREND_FOLLOWING", 0.40
-        else:
-            mode, multiplier = "PURE_TREND", 0.15
-        
-        return {
-            "mode": mode,
-            "adf_pvalue": adf_pvalue,
-            "severity_multiplier": multiplier,
-            "source": "single_series",
         }
     
     def _compute_validity_score(self, active_results: List[DetectorResult]) -> float:
@@ -1766,19 +1637,10 @@ def test_evidence_key_contract():
     
     errors = []
     
-    # FM1: Expected keys used by analyzer (V2 — three-component detector)
+    # FM1: Expected keys used by analyzer
     fm1 = FM1_VarianceRegimeShift()
     fm1_sig = fm1.detect(z_t, Z_t)
-    fm1_v2_keys = [
-        "variance_ratio", "f_statistic", "p_value",          # Component A
-        "rolling_z_var", "rolling_window_size",               # Component B
-        "cusum_sup", "cusum_significant",                     # Component C
-        "severity_A", "severity_B", "severity_C",             # Per-component severity
-        "dominant_component", "active_component_count",       # Aggregation
-        "direction", "asymmetry_factor",                      # Directional asymmetry
-        "confidence_A", "confidence_B", "confidence_C",       # Confidence internals
-    ]
-    for key in fm1_v2_keys:
+    for key in ["variance_ratio", "f_statistic", "p_value"]:
         if key not in fm1_sig.evidence:
             errors.append(f"FM1 missing key '{key}' — analyzer will use default")
     
