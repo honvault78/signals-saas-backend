@@ -2755,7 +2755,20 @@ YOU MUST INCLUDE (from source B — or write [data unavailable]):
 ✓ Revenue growth differential: "[LONG] +X% YoY vs [SHORT] +X% YoY"
 ✓ Analyst consensus rating and price target upside for each leg
 ✓ Your view: is the valuation gap justified, stretched, or at an inflection point?
-  State which specific metric drives your view.
+
+  MANDATORY DIRECTIONAL LOGIC — follow this exactly:
+  Step 1: Identify which ticker carries the PREMIUM (higher P/E = more expensive).
+  Step 2: Check if that premium ticker has BETTER margins AND BETTER growth than the discount ticker.
+    - If YES (premium ticker wins on both): "valuation premium appears justified"
+    - If NO (discount ticker has better margins OR better growth): "valuation premium appears stretched/unjustified"
+    - If MIXED (one metric each): "valuation gap appears partially justified by [metric] but stretched given [other metric]"
+  
+  EXAMPLE — AVGO at 22.9x vs NVDA at 18.6x (AVGO has the premium):
+    AVGO margin 31.8% < NVDA margin 63.2%, AVGO growth 16.4% < NVDA growth 62.5%
+    → AVGO's premium is UNJUSTIFIED. Write: "AVGO's premium appears stretched — the discount ticker 
+      (NVDA) has materially superior margins (63.2% vs 31.8%) and far faster growth (62.5% vs 16.4%)."
+  
+  NEVER write "valuation gap appears justified" when the premium ticker has weaker fundamentals than the discount ticker.
 
 ### Market Narrative & Positioning
 
