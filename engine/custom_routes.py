@@ -308,6 +308,14 @@ async def analyze_custom(
         distribution_chart_base64=charts.get("distribution"),
         validity_data=validity_data,
         analysis_period_days=analysis_period_days,
+        chart_z_score=z_score,
+        chart_cumulative=cumulative,
+        chart_regime_history=regime_df,
+        chart_window=min(60, len(daily_returns) - 20),
+        as_of_date=cumulative.index[-1] if has_dates else None,
+        analysis_has_dates=has_dates,
+        risk_horizon_days=1 if parsed.frequency == "daily" else None,
+        is_equity_pair=False,
     )
     
     # Add confidentiality badge to report
@@ -439,6 +447,12 @@ def _add_confidentiality_badge(html: str, has_dates: bool, parsed: ParsedData) -
     
     summary = f"{parsed.row_count} observations • {date_info}"
     
+    # The new report has an explicit insertion point; retain the upload context.
+    if '<div id="upload-context"></div>' in html:
+        from html import escape as html_escape
+        note = '<div style="padding:12px 0;color:#5c6b7d;font-size:13px">Confidential custom analysis · ' + html_escape(summary) + '</div>'
+        return html.replace('<div id="upload-context"></div>', note, 1)
+
     # Fix the hardcoded "180-Day Analysis" subtitle
     html = html.replace(
         '180-Day Analysis with Regime Detection',

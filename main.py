@@ -618,6 +618,14 @@ async def analyze(
         analysis_period_days=request.analysis_period_days,
         claude_fs_html=claude_fs_html,              # First-class param — no injection
         deterministic_decision=deterministic_decision,  # For summary display in report header
+        chart_z_score=z_score,
+        chart_cumulative=portfolio_returns.cumulative,
+        chart_regime_history=regime_df,
+        chart_window=60,
+        as_of_date=portfolio_returns.end_date,
+        position_gross_exposure=float(portfolio.gross_exposure),
+        fundamental_data=fundamental_data,
+        is_equity_pair=is_equity_pair,
     )
     
     html_report = generate_html_report(**report_kwargs)
