@@ -1177,19 +1177,20 @@ DATA QUALITY — WILL TRIP YOU UP IF IGNORED:
     calculated value from current price is used. But this still depends on the EPS/EBITDA being 
     correct in Yahoo's database — if numbers look implausible, say so.
 
-RECOMMENDATION INTEGRITY — THE MOST COMMON FAILURE MODE IN YOUR OUTPUT:
-25. The brief includes a mandatory COHERENCE CHECK section that you MUST write as visible output.
-    Write "Fundamentals favor [LONG leg / SHORT leg / NEITHER]: [reason]" in the memo.
-    Then your recommendation MUST match. If you write "Fundamentals favor SHORT leg" you CANNOT 
-    recommend REDUCE — the contradiction is visible to the reader on the same page.
-    This is the single most important quality check. Getting this wrong destroys all credibility.
-26. If inverse return is between -5% and +5%, REVERSE is NOT justified. The inverse was roughly 
-    flat — flipping just adds costs with no edge. Say this explicitly.
-27. If engine confidence is below 30%, the pre-calculated sizing floors near 25%. At that level, 
-    EXIT is almost always cleaner than maintaining a tiny stub position. Do not recommend REDUCE 
-    to 40-50% when confidence is 24% — the math doesn't support it.
-28. DIRECTION TEST: Before submitting, read your COHERENCE CHECK and your RECOMMENDATION 
-    back-to-back. If they point in opposite directions, one of them is wrong. Fix it.
+YOU DO NOT RECOMMEND — THE DECISION IS LOCKED:
+25. The position decision (BUILD / HOLD / REDUCE / EXIT) is computed by the engine before you 
+    are called and is combined with your fundamental stance by the report layer. You never write 
+    a recommendation, a bottom line, a target size or a percentage of the position. Sentences 
+    beginning "I recommend", "EXIT the position", "reduce to X%" are forbidden anywhere in the memo.
+26. Instead you write a mandatory FUNDAMENTAL STANCE section stating whether the fundamental 
+    evidence SUPPORTS, is NEUTRAL toward, or is IN TENSION with the position AS HELD (long the 
+    long leg, short the short leg), with a conviction level. "Fundamentals favor the SHORT leg" 
+    means IN TENSION. This stance is shown on the front page next to the engine decision; the 
+    reader sees both and the report explains the combination.
+27. If inverse return is between -5% and +5%, do not describe the inverse trade as attractive — 
+    it was roughly flat and flipping only adds costs. Say so.
+28. Every dollar figure uses the position basis given in PERFORMANCE & RISK (gross exposure). 
+    Never restate risk on a different notional.
 
 WHAT WOULD CHANGE THIS VIEW — ENFORCED EVERY TIME:
 29. Every bullet MUST contain at least one: metric + specific threshold, calendar date or 
@@ -1209,20 +1210,12 @@ RISK PROFILE — QUANTIFY THE FM IMPACT:
     a recurring pattern — if the seasonal move runs its historical average of X%, losses could 
     reach $Y, roughly 1.5x the base VaR." Don't just say "tail risk could be amplified."
 
-RECOMMENDATION SIZING — USE THE PRE-CALCULATED NUMBER:
-32. The prompt includes a PRE-CALCULATED SIZING SUGGESTION derived from engine confidence 
-    and FM severity penalties. USE IT. You may adjust ±10% based on your fundamental analysis:
-    - Fundamentals strongly support → size UP from suggestion (explain why)
-    - Fundamentals contradict → size DOWN or EXIT (explain why)
-    DO NOT invent your own sizing framework. DO NOT make up a "vol multiple."  
-    DO NOT default to 50%. The pre-calculated number comes from real data — trust it.
-    Floor: 25% (below that, EXIT is cleaner). Cap: 100% (that's HOLD).
-33. Different situations demand different recommendations. Not everything is REDUCE:
-    - Score 83+, confidence 60%+, 0-1 mild FMs, fundamentals support → HOLD (possibly ENTER more)
-    - Score 70-82, confidence 40-60%, 1-2 FMs → REDUCE to sized amount per framework above
-    - Score < 70 OR confidence < 30% OR 3+ FMs OR structural break → EXIT or REVERSE
-    - Fundamentals strongly contradicting position → REVERSE regardless of score
-    - All clear but regime unfavorable → WAIT (no position change, reassess on regime shift)
+SIZING — NOT YOUR JOB:
+32. Do not discuss position size, sizing frameworks, percentages of the position or "vol 
+    multiples". The report does not show sizes. If the engine decision is REDUCE or EXIT, you may 
+    explain which evidence supports caution; you do not quantify the cut.
+33. The engine decision already reflects validity, failure modes, regime and P&L. Your value is 
+    the fundamental and risk explanation, not a second decision.
 
 ANTI-PATTERNS (will get you fired):
 - "Significant losses due to [X]" without derived dollar figure
@@ -1232,24 +1225,16 @@ ANTI-PATTERNS (will get you fired):
 - Regime "ranging" but P&L directional, without flagging contradiction
 - Citing a distorted P/E (>50x or negative) as if it's a real valuation signal
 - "Inverse would have been profitable, suggesting reversal" when inverse return <5%
-- Fundamental analysis says "A is cheaper and better" then recommending short A
+- Fundamental analysis says "A is cheaper and better" while labelling a short-A position SUPPORTS
 - "Tail risk could be amplified" without estimating by how much
 - Statistical patterns without fundamental hypotheses
 - Using equity language for crypto ("earnings surprise", "analyst re-rating", "dividend") 
 - "If volatility returns to historical norms" / "if crowding reduces" as WHAT WOULD CHANGE bullets
-- Inventing sizing math: "vol 1.5x baseline → 67%" when you don't have the vol multiple data.
-  USE THE PRE-CALCULATED SIZING — do not fabricate derivations.
-- COHERENCE FAILURE: writing "MC.PA is undervalued relative to RMS.PA, suggesting re-rating" 
-  then recommending REDUCE on a long-RMS/short-MC position. Your own analysis says the short 
-  leg will go UP. That means EXIT, not REDUCE. This is the #1 credibility killer.
-- DIRECTION CONTRADICTION — the #1 credibility killer:
-  BAD: "LVMH appears significantly undervalued... the valuation gap seems excessive, suggesting 
-  a potential re-rating of LVMH" → then recommends REDUCE (keeping the short-LVMH position).
-  Your own analysis just said the short leg is undervalued and due to re-rate upward. 
-  Keeping the short is BETTING AGAINST YOUR OWN ANALYSIS. Recommend EXIT or REVERSE.
-  GOOD: "LVMH at 25.6x P/E vs Hermès at 48.5x — a 47% discount — suggests the short leg 
-  is fundamentally undervalued. Combined with low confidence (24%) and active FMs, this trade 
-  lacks both fundamental and statistical support. EXIT."
+- STANCE MISMATCH: writing "MC.PA is undervalued relative to RMS.PA, suggesting re-rating" 
+  on a long-RMS/short-MC position and then labelling the stance SUPPORTS or NEUTRAL. If your 
+  own analysis says the short leg should go up, the stance is IN TENSION. Say it plainly.
+- WRITING A RECOMMENDATION. "EXIT", "REVERSE", "reduce to 50%" are decisions; you are not 
+  the decision layer. State the stance and the evidence and stop.
 - VAGUE VALUATION REFERENCES when you have actual numbers. Examples:
   BAD: "Broadcom is significantly cheaper based on forward P/E and EV/EBITDA"
   GOOD: "AVGO at 67.8x trailing P/E vs NVDA at 47.0x — NVDA carries a 31% discount despite 
@@ -1257,8 +1242,6 @@ ANTI-PATTERNS (will get you fired):
          partially justified by profitability, but the gap is extreme."
   If you write "X is cheaper" or "Y has higher margins" WITHOUT the actual numbers from the 
   data, your analysis is WORTHLESS. The whole point of having real data is to USE it.
-- DEFAULTING TO "REDUCE 50%" WITHOUT DERIVATION. This is the #1 lazy pattern. If every memo 
-  says REDUCE 50% regardless of setup, the recommendation is worthless. Show your sizing math.
 - IGNORING ANALYST CONSENSUS when the data is right there. If analysts rate one stock 1.8 (Buy) 
   with +15% upside and the other 2.4 (Hold) with +5% upside, SAY IT. The Street's view matters.
   BAD: [no mention of analyst sentiment]
@@ -2134,6 +2117,7 @@ def build_decision_brief_prompt(
     claude_fs_analysis: Optional[str] = None,
     deterministic_decision: Optional[Dict[str, Any]] = None,
     is_equity_pair: bool = True,
+    position_gross_exposure: Optional[float] = None,
 ) -> str:
     from datetime import date as _date
     today_str = _date.today().strftime("%Y-%m-%d")
@@ -2162,11 +2146,11 @@ def build_decision_brief_prompt(
     # The decision is pre-computed by deterministic logic. The LLM EXPLAINS it — never overrides it.
     if deterministic_decision:
         dd = deterministic_decision
-        prompt += f"\n## ⚡ LOCKED DECISION: {dd['decision']} ({dd['size_pct']}% of full position) ⚡\n"
-        prompt += f"This decision was computed deterministically from: validity score, failure modes, regime, and P&L.\n"
+        _verb = {"ENTER": "BUILD", "HOLD": "HOLD", "REDUCE": "REDUCE", "WAIT": "REDUCE", "EXIT": "EXIT", "REVERSE": "EXIT"}.get(str(dd.get('decision', '')).upper(), "HOLD")
+        prompt += f"\n## ⚡ ENGINE DECISION (locked): {_verb} ⚡\n"
+        prompt += f"This decision was computed deterministically from validity, failure modes, regime and P&L, and will be combined with YOUR fundamental stance by the report layer.\n"
         prompt += f"Engine rationale: {dd['rationale']}\n"
-        prompt += f"Your task: EXPLAIN this decision using the data below. You MUST NOT change the decision or the size.\n"
-        prompt += f"You may say: 'This decision is supported by...' or 'The key factors driving this are...' — never 'I recommend...'\n"
+        prompt += f"Your task: explain the statistical and risk picture and state your FUNDAMENTAL STANCE. Do NOT write a recommendation, a bottom line or any position size.\n"
         prompt += f"Context: {dd['override_reason']}\n"
         prompt += f"\n## ══════════════════════════════════════════════════════════════\n\n"
     
@@ -2270,14 +2254,16 @@ def build_decision_brief_prompt(
         best_day = enhanced_stats.get('best_day', 0)
         worst_day = enhanced_stats.get('worst_day', 0)
         
-        daily_var_dollars = abs(var95 * 1_000_000) if var95 else 0
+        _basis = float(position_gross_exposure) if position_gross_exposure and float(position_gross_exposure) > 0 else 1_000_000.0
+        _basis_label = f"${_basis:,.0f} gross exposure" if position_gross_exposure else "$1M"
+        daily_var_dollars = abs(var95 * _basis) if var95 else 0
         monthly_var_dollars = daily_var_dollars * (21 ** 0.5) if daily_var_dollars else 0
-        daily_vol_dollars = abs(ann_vol * 1_000_000 / 16) if ann_vol else 0
+        daily_vol_dollars = abs(ann_vol * _basis / 16) if ann_vol else 0
         inverse_ret = -total_ret
         cvar95 = enhanced_stats.get('cvar_95', 0)
-        daily_cvar_dollars = abs(cvar95 * 1_000_000) if cvar95 else 0
+        daily_cvar_dollars = abs(cvar95 * _basis) if cvar95 else 0
         
-        inverse_note = "OPPOSITE highly profitable — evaluate REVERSE" if inverse_ret > 0.10 else "inverse also losing — may not be tradeable either way" if inverse_ret < -0.05 else "roughly flat"
+        inverse_note = "opposite direction would have been highly profitable — explain why the spread trended" if inverse_ret > 0.10 else "inverse also losing — may not be tradeable either way" if inverse_ret < -0.05 else "roughly flat"
         
         # Plain English interpretations (democratize quant for non-quant readers)
         ret_read = "POSITIVE — strategy is working" if total_ret > 0.02 else "ROUGHLY FLAT — no clear edge yet" if total_ret > -0.02 else "NEGATIVE — strategy is struggling"
@@ -2310,22 +2296,22 @@ def build_decision_brief_prompt(
             if ('rang' in raw_regime or 'mean' in raw_regime) and abs(max_dd) > 0.15:
                 regime_dd_flag = f"REGIME-DRAWDOWN MISMATCH: '{raw_regime}' but DD={max_dd:.1%} suggests directional move."
         
-        prompt += f"\n## PERFORMANCE & RISK (on $1M position)\n"
+        prompt += f"\n## PERFORMANCE & RISK (position basis: {_basis_label} — use this basis for every dollar figure)\n"
         prompt += f"Return: {total_ret:.2%} ({ret_read})\n"
         
         # Expected daily return
         n_days = enhanced_stats.get('n_trading_days', 180)
         if n_days and n_days > 0 and total_ret != 0:
             daily_ret_avg = total_ret / n_days
-            daily_ret_dollars = daily_ret_avg * 1_000_000
-            prompt += f"Expected daily return: {daily_ret_avg:.4%} = ~${daily_ret_dollars:+,.0f}/day on $1M "
+            daily_ret_dollars = daily_ret_avg * _basis
+            prompt += f"Expected daily return: {daily_ret_avg:.4%} = ~${daily_ret_dollars:+,.0f}/day on {_basis_label} "
             prompt += f"({'positive drift — trade has been generating value' if daily_ret_dollars > 0 else 'negative drift — trade is bleeding money daily'})\n"
         
         prompt += f"Max DD: {max_dd:.2%} ({dd_read})\n"
         prompt += f"Best day: {best_day:.2%} | Worst day: {worst_day:.2%}\n"
         prompt += f"Inverse: ~{inverse_ret:+.2%} ({inverse_note})\n"
         prompt += f"\n### CAN IT BLOW UP? (risk metrics with plain English)\n"
-        prompt += f"Volatility: {ann_vol:.1%} annualized = ~${daily_vol_dollars:,.0f}/day on $1M\n"
+        prompt += f"Volatility: {ann_vol:.1%} annualized = ~${daily_vol_dollars:,.0f}/day on {_basis_label}\n"
         prompt += f"VaR 95%: {var95:.2%} daily = ${daily_var_dollars:,.0f}/day — {var_read}\n"
         if cvar95:
             prompt += f"CVaR 95%: {cvar95:.2%} daily = ${daily_cvar_dollars:,.0f}/day — {cvar_read}\n"
@@ -2338,71 +2324,21 @@ def build_decision_brief_prompt(
         if regime_dd_flag:
             prompt += f"{regime_dd_flag}\n"
     
-    # Pre-computed sizing inputs for recommendation
+    # Engine inputs summary (context only — the decision is locked above; no sizing)
     if enhanced_stats or validity_data or failure_modes:
-        prompt += "\n## SIZING INPUTS (use these to derive your recommendation — do NOT ignore)\n"
-        
-        # Confidence
+        prompt += "\n## ENGINE INPUTS (context for your explanation — not a sizing framework)\n"
         confidence_pct = 50
         if validity_data:
             confidence_pct = validity_data.get('confidence', {}).get('overall', 50) if isinstance(validity_data.get('confidence'), dict) else validity_data.get('confidence', 50)
         prompt += f"Engine confidence: {confidence_pct}%\n"
-        
-        # Active FMs summary
         active_fm_count = 0
-        total_severity = 0
         max_severity = 0
         if failure_modes:
             for fm in failure_modes:
                 if fm.get('detected', False):
                     active_fm_count += 1
-                    sev = fm.get('severity', 0)
-                    total_severity += sev
-                    max_severity = max(max_severity, sev)
-        avg_severity = total_severity / active_fm_count if active_fm_count > 0 else 0
-        prompt += f"Active failure modes: {active_fm_count} | Avg severity: {avg_severity:.0f}/100 | Max severity: {max_severity}/100\n"
-        
-        # Validity score
-        v_score = validity_data.get('validity_score', 50) if validity_data else 50
-        prompt += f"Validity score: {v_score}/100\n"
-        
-        # Suggested sizing calculation (for GPT to verify/adjust, not blindly copy)
-        # Base from confidence
-        conf_factor = confidence_pct / 100
-        # FM penalty: -10% per FM with severity > 50, -5% per FM with severity 30-50
-        fm_penalty = 0
-        if failure_modes:
-            for fm in failure_modes:
-                if fm.get('detected', False):
-                    sev = fm.get('severity', 0)
-                    if sev > 50:
-                        fm_penalty += 0.10
-                    elif sev > 30:
-                        fm_penalty += 0.05
-        
-        suggested_size = max(0.25, min(1.0, conf_factor - fm_penalty))
-        
-        prompt += f"\n⚡ PRE-CALCULATED SIZING: {suggested_size:.0%} of full position ⚡\n"
-        prompt += f"  Derivation: confidence {confidence_pct}% → {conf_factor:.2f}"
-        if fm_penalty > 0:
-            prompt += f", FM penalty -{fm_penalty:.0%}"
-        prompt += f" → {suggested_size:.0%}\n"
-        prompt += "  USE THIS NUMBER in your recommendation. You may adjust ±10% based on \n"
-        prompt += "  fundamentals, but you MUST cite this number and explain any deviation.\n"
-        prompt += "  DO NOT invent your own sizing math or make up a 'vol multiple.'\n"
-        
-        # Decision tree hint
-        if v_score < 70 or confidence_pct < 25 or max_severity > 80:
-            prompt += "  ⚠️⚠️ LOW SCORE/CONFIDENCE/HIGH SEVERITY → EXIT is almost certainly correct.\n"
-            prompt += "  At this confidence level, REDUCE to a tiny position is worse than a clean EXIT.\n"
-            prompt += "  Only deviate from EXIT if fundamentals STRONGLY support the trade direction.\n"
-        elif suggested_size < 0.30:
-            prompt += "  ⚠️ SUGGESTED SIZE BELOW 30% → EXIT is cleaner than maintaining a stub.\n"
-            prompt += "  Only keep if fundamentals provide a clear reason to stay.\n"
-        elif v_score >= 83 and confidence_pct >= 60 and active_fm_count <= 1 and max_severity <= 40:
-            prompt += "  ✓ STRONG SETUP → HOLD may be appropriate if fundamentals confirm. Don't REDUCE just to be safe.\n"
-        elif suggested_size < 0.40:
-            prompt += "  ⚠️ SMALL SIZE → consider whether the position is worth the operational overhead.\n"
+                    max_severity = max(max_severity, fm.get('severity', 0))
+        prompt += f"Active failure modes: {active_fm_count} | Max severity: {max_severity}/100\n"
     
     # Fundamental drivers
     prompt += "\n## WHAT'S LIKELY DRIVING THE SPREAD\n"
@@ -2596,7 +2532,7 @@ BE HONEST about performance: if the strategy has been profitable, lead with that
 Structure this section with these mandatory elements:
 
 **1. Failure Mode Risks** (per active FM):
-What's wrong, regime relevance, P&L impact in dollars on $1M. If multiple: reinforcing or independent?
+What's wrong, regime relevance, P&L impact in dollars on the position basis. If multiple: reinforcing or independent? If volatility FELL, say that it fell — a lower-volatility regime is not a risk amplifier.
 
 **2. Daily Risk in Plain English:**
 "On a normal day, the spread moves about ±$X (daily volatility). On a bad day — the kind that 
@@ -2620,7 +2556,7 @@ Is the max drawdown modest (<8%), moderate (8-15%), or significant (>15%)? Say i
 Be FACTUAL, not alarmist. If risk is well-contained, say so.
 
 ### RISK PROFILE (3-4 sentences)
-SHOW MATH: monthly = daily VaR × √21. Give ONE base number on $1M.
+SHOW MATH: monthly = daily VaR × √21. Give ONE base number on the position basis stated above.
 Then explain what this means: "In a typical month, you should expect the position to move against 
 you by up to ~$X. This assumes returns are roughly normally distributed — but [skewness/kurtosis 
 suggest they are / suggest fatter tails, so actual monthly losses could exceed this by 20-40%]."
@@ -2629,33 +2565,14 @@ Then: if an FM is active, QUANTIFY its amplification — e.g., "seasonality adds
 during adverse windows, taking monthly risk from $46k to ~$60k." Do NOT just say "tail risk 
 could be amplified" — estimate by how much and explain the mechanism.
 
-### COHERENCE CHECK (mandatory — write this section BEFORE the recommendation)
-Answer these explicitly in the memo. These are VISIBLE to the reader.
-
-**Direction:** Does your WHAT'S DRIVING analysis favor the LONG leg, the SHORT leg, or neither?
-  Write: "Fundamentals favor [LONG/SHORT/NEITHER]: [one sentence why]"
-  
-**Implication:** What does this mean for the trade?
-  - If fundamentals favor the LONG leg → trade has fundamental support → lean HOLD/ENTER
-  - If fundamentals favor the SHORT leg → your own analysis says the trade is WRONG → EXIT or REVERSE
-  - If neither → no fundamental edge → decision rests on statistical signal and confidence
-
-**Confidence gate:** Engine confidence is [X]%. At this level:
-  - Above 60%: normal sizing applies
-  - 30-60%: reduced sizing, use pre-calculated number
-  - Below 30%: near-minimum position — seriously consider EXIT over a stub
-
-### RECOMMENDATION
-ENTER / HOLD / WAIT / REDUCE X% / REVERSE / EXIT
-
-Your recommendation MUST be consistent with the COHERENCE CHECK above. If you wrote 
-"Fundamentals favor SHORT leg" you CANNOT recommend REDUCE — only EXIT or REVERSE.
-If confidence is below 30%, you CANNOT recommend REDUCE to 40%+ without explanation.
-
-IF REDUCE: Use the pre-calculated sizing from SIZING INPUTS above.
-  - Cite the number: "Pre-calculated sizing: X%"
-  - If you deviate: explain why (fundamentals support → size up; fundamentals contradict → size down)
-  - DO NOT invent sizing math. DO NOT make up a "vol multiple."
+### FUNDAMENTAL STANCE (mandatory — visible on the front page)
+State, in exactly this format on its own line:
+FUNDAMENTAL STANCE: [SUPPORTS | NEUTRAL | IN TENSION] — CONVICTION: [LOW | MEDIUM | HIGH]
+Then one or two sentences: which leg the fundamental evidence favours and why, citing numbers.
+SUPPORTS = the evidence favours the position as held (long leg stronger than short leg).
+IN TENSION = the evidence favours the short leg, or argues against the long leg.
+NEUTRAL = no fundamental edge either way.
+Do not write a recommendation. Do not mention position size. The engine decision above is final.
 
 ### UPCOMING CATALYSTS (if Claude FS research is available — 3-5 bullets)
 If the LIVE FUNDAMENTAL RESEARCH section contains catalyst information, include key dates
@@ -2680,13 +2597,13 @@ If overall CONVICTION from Claude FS is LOW, this should weight heavily toward E
 
 {what_would_change_block}
 
-### BOTTOM LINE (one sentence)
-Action + sizing. 5-second decision.
+### WHERE THE VIEWS MEET (one or two sentences)
+Say plainly whether your fundamental stance agrees with, is neutral toward, or is in tension with the engine decision above, and what the reader should watch for the disagreement to resolve. No action verb, no size.
 """
 
     # Equity pairs: remind GPT to write FA section. Non-equity: explicitly tell it to stop.
     if is_equity_pair:
-        prompt += """\n⚠️ MANDATORY: After BOTTOM LINE you MUST write ## FUNDAMENTAL ANALYSIS.
+        prompt += """\n⚠️ MANDATORY: After WHERE THE VIEWS MEET you MUST write ## FUNDAMENTAL ANALYSIS.
 Do NOT stop. Budget: TRADE ANALYSIS ≤550 words, FUNDAMENTAL ANALYSIS 450–600 words.\n"""
         prompt += """
 ## ─────────────────────────────────────────────────────────────
@@ -2834,10 +2751,10 @@ quarterly breakdown, say so explicitly rather than presenting annual as quarterl
 ## FINAL CONSISTENCY SCAN (before submitting)
 
 1. DATA CITATION: Did WHAT'S DRIVING cite ≥2 specific numbers with gaps? If not, rewrite.
-2. COHERENCE CHECK vs RECOMMENDATION: Does the direction in COHERENCE CHECK match the 
-   recommendation? "Fundamentals favor SHORT leg" + "REDUCE" = INCOHERENT → fix it.
-3. SIZING: Does the % match the pre-calculated suggestion (±10%)? If confidence was 24%, 
-   pre-calc is ~25%. Recommending 45% is fabrication.
+2. FUNDAMENTAL STANCE: Is the line present in the exact format, and does it match your own 
+   WHAT'S DRIVING analysis? Favouring the short leg = IN TENSION, not SUPPORTS.
+3. NO RECOMMENDATION: Search your draft for "EXIT", "REVERSE", "reduce to", "%" of position, 
+   "I recommend". Remove any that describe an action rather than the engine's stated decision.
 4. WHAT WOULD CHANGE: Do all bullets have specific metrics/thresholds/dates? Any banned phrases?
 5. CLAUDE FS INTEGRATION: If live research was provided:
    a) Did you cite at least 3 findings from it? (earnings data, analyst actions, catalysts)
@@ -3020,6 +2937,7 @@ async def generate_memo(
     claude_fs_analysis: Optional[str] = None,
     deterministic_decision: Optional[Dict[str, Any]] = None,
     is_equity_pair: bool = True,
+    position_gross_exposure: Optional[float] = None,
 ) -> str:
     if api_key is None:
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -3044,6 +2962,7 @@ async def generate_memo(
             claude_fs_analysis=claude_fs_analysis,
             deterministic_decision=deterministic_decision,
             is_equity_pair=is_equity_pair,
+            position_gross_exposure=position_gross_exposure,
         )
         logger.info(f"Generating decision brief via {model}...")
         logger.info(f"GPT prompt: {len(prompt)} chars, FA section present: {'FUNDAMENTAL ANALYSIS' in prompt}, Claude FS data: {bool(claude_fs_analysis)}")
@@ -3349,8 +3268,8 @@ def _generate_structured_fallback(enhanced_stats, regime_summary, failure_modes=
         brief += f" Inverse: {inverse_ret:+.1%}."
     brief += f" Historical max DD: {max_dd:.2%} (backward).\n"
     
-    brief += f"\n### RECOMMENDATION\n**{rec}**: {reason}\n"
-    brief += f"\n### BOTTOM LINE\n{rec} — {reason}\n"
+    brief += "\n### FUNDAMENTAL STANCE\nFUNDAMENTAL STANCE: NEUTRAL — CONVICTION: LOW\nNo fundamental research was available for this run.\n"
+    brief += f"\n### WHERE THE VIEWS MEET\nEngine view: {reason}\n"
     brief += "\n*Structured fallback — AI unavailable.*\n"
     return brief
 

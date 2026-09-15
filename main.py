@@ -564,6 +564,7 @@ async def analyze(
                 claude_fs_analysis=claude_fs_result,
                 deterministic_decision=deterministic_decision,
                 is_equity_pair=is_equity_pair,
+                position_gross_exposure=float(portfolio.gross_exposure),
             )
     
     # Step 11: Generate HTML report
