@@ -1277,6 +1277,16 @@ ANTI-PATTERNS (will get you fired):
 - Statistical patterns without fundamental hypotheses
 - Using equity language for crypto ("earnings surprise", "analyst re-rating", "dividend") 
 - "If volatility returns to historical norms" / "if crowding reduces" as WHAT WOULD CHANGE bullets
+- FLOW CLAIMS WITHOUT FLOW DATA: "smart money is buying/selling", "institutions are accumulating", 
+  "crowded trade could unwind violently". A regime label or a distribution statistic is not evidence 
+  of who is positioned. Say "the path shows a distribution-type regime" and stop. Never use the 
+  phrase "smart money".
+- INVENTED HAIRCUTS: "losses could exceed the estimate by 20–30%". If there is no calculation 
+  behind an adjustment, do not write it. Report the engine's number and its basis.
+- "UP TO $X": VaR and expected shortfall are thresholds and tail averages, not maximum losses. 
+  Write "a one-day loss beyond ~$X is expected about once in twenty days", never "losses of up to $X".
+- TRIGGERS ALREADY MET: "reassess if the rating falls below 2.0" when the rating is 1.75. Every 
+  trigger must state the CURRENT value and a threshold on the far side of it.
 - STANCE MISMATCH: writing "MC.PA is undervalued relative to RMS.PA, suggesting re-rating" 
   on a long-RMS/short-MC position and then labelling the stance SUPPORTS or NEUTRAL. If your 
   own analysis says the short leg should go up, the stance is IN TENSION. Say it plainly.
@@ -2814,6 +2824,10 @@ quarterly breakdown, say so explicitly rather than presenting annual as quarterl
    WHAT'S DRIVING analysis? Favouring the short leg = IN TENSION, not SUPPORTS.
 3. NO RECOMMENDATION: Search your draft for "EXIT", "REVERSE", "reduce to", "%" of position, 
    "I recommend". Remove any that describe an action rather than the engine's stated decision.
+4. BANNED WORDING: "smart money", "up to $", unexplained percentage haircuts, crowding claims 
+   with no positioning data. Remove them.
+5. TRIGGERS: each WHAT WOULD CHANGE item states the current value and a threshold beyond it. A 
+   threshold already met is a bug — fix the number.
 4. WHAT WOULD CHANGE: Do all bullets have specific metrics/thresholds/dates? Any banned phrases?
 5. CLAUDE FS INTEGRATION: If live research was provided:
    a) Did you cite at least 3 findings from it? (earnings data, analyst actions, catalysts)

@@ -97,6 +97,22 @@ def _chart_data(cumulative, z_score, regimes, window, has_dates):
     except (AttributeError, TypeError, ValueError, KeyError): return [], []
 
 
+def _path_views(cumulative, has_dates):
+    """Historical performance (%) and drawdown (%) of the long/short construction over the full window."""
+    if not has_dates or cumulative is None or not hasattr(cumulative, 'items'): return [], []
+    try:
+        perf, dd, peak, base = [], [], None, None
+        for index, value in cumulative.items():
+            day, v = _date(index), _num(value)
+            if not day or v is None or v <= 0: continue
+            if base is None: base = v
+            peak = v if peak is None or v > peak else peak
+            perf.append({'date': day, 'value': (v / base - 1) * 100})
+            dd.append({'date': day, 'value': (v / peak - 1) * 100})
+        return perf, dd
+    except (AttributeError, TypeError, ValueError): return [], []
+
+
 def _clean_name(value, ticker):
     """Trim provider padding ("Siemens Energy AG             N") and shouting caps."""
     name = re.sub(r'\s+', ' ', str(value or '')).strip()
@@ -182,6 +198,8 @@ def _decide(engine_action, health_state, stats, fundamentals, risk, adf_p, z_las
 
 
 # Taxonomy from this project's bavella_adapter.py, not the illustrative demo.
+FM_NOUN = {'FM1':'volatility', 'FM2':'parameter drift', 'FM3':'timing', 'FM4':'a structural break', 'FM5':'outliers', 'FM6':'positioning', 'FM7':'dependency'}
+
 FM = {
     'FM1': ('Volatility regime shift', 'Price swings have changed.'),
     'FM2': ('Parameter drift', 'The relationship’s parameters are drifting.'),
@@ -220,6 +238,7 @@ def generate_html_report(
             return {'name': _clean_name((funds.get(ticker) or {}).get('name'), ticker), 'ticker': ticker}
         return {'name': f'{side} basket ({len(positions)})' if positions else f'No {side.lower()} leg', 'ticker': ', '.join(positions)}
     series, events = _chart_data(chart_cumulative, chart_z_score, chart_regime_history, chart_window, analysis_has_dates)
+    perf_series, dd_series = _path_views(chart_cumulative, analysis_has_dates)
     asof = _date(as_of_date)
     if analysis_has_dates and chart_cumulative is not None and len(chart_cumulative): asof = _date(chart_cumulative.index[-1]) or asof
     if not analysis_has_dates: asof = None
@@ -232,27 +251,30 @@ def generate_html_report(
     def driver(id, group, priority, topic, tone, role, title, detail, explanation=None, material=False):
         drivers.append(dict(id=id, group=group, priority=priority, topic=topic, tone=tone, role=role, title=title,
                             detail=str(detail or ''), explanation=str(explanation or detail or ''), link='Open the evidence', material=material))
-    for code, item in active.items():
-        label, title = FM.get(code, (str(item.get('label') or code), 'A diagnostic concern is reported.'))
-        driver(code, 'diagnostics', 95 + (_num(item.get('severity')) or 0) / 100, 'structure', 'negative', 'Relationship concern', title, item.get('summary') or item.get('label') or label)
+    _nouns = [FM_NOUN.get(c, FM.get(c, (c,))[0].lower()) for c in active]
+    _nouns_text = (', '.join(_nouns[:-1]) + ' and ' + _nouns[-1]) if len(_nouns) > 1 else (_nouns[0] if _nouns else '')
+    if len(active) >= 2:
+        driver('warnings', 'diagnostics', 105, 'structure', 'negative', 'Relationship warnings', f'{len(active)} warnings are active: {_nouns_text}.',
+               'Each on its own is mild. Together they trip the engine’s position rule, which is why the decision is stricter than the relationship score alone would suggest.',
+               ' '.join(f"{FM.get(c, (c,))[0]}: {str(i.get('summary') or i.get('label') or '')}".strip() for c, i in active.items()), material=True)
+    else:
+        for code, item in active.items():
+            label, title = FM.get(code, (str(item.get('label') or code), 'A diagnostic concern is reported.'))
+            driver(code, 'diagnostics', 95 + (_num(item.get('severity')) or 0) / 100, 'structure', 'negative', 'Relationship concern', title, item.get('summary') or item.get('label') or label)
     if not active: driver('structure', 'diagnostics', 95, 'structure', 'positive' if state == 'VALID' else 'neutral', 'Relationship assessment', health + '.', v.get('summary') or 'Detailed diagnostics unavailable.')
     backdrop = str(regime.get('current_regime') or 'Not supplied')
-    driver('regime', 'timing', 75, 'timing', 'neutral', 'Market backdrop', backdrop.replace('_', ' ').capitalize() + ' backdrop.', 'Rolling regime read on the portfolio path. Context for the move, not an instruction.', regime.get('strategy') or regime.get('strategic_signal') or '')
+    driver('regime', 'timing', 60, 'timing', 'neutral', 'Market backdrop', backdrop.replace('_', ' ').capitalize() + ' backdrop.', 'Rolling regime read on the portfolio path. Context for the move, not an instruction.', 'Regime labels are statistical descriptions of the path; they carry no information about who is buying or selling.')
     competing = attr.get('competing_causes') or details.get('competing_causes') or []
     counter = attr.get('counterfactuals') or details.get('counterfactuals') or []
     sensitive = [c for c in counter if isinstance(c, dict) and c.get('changes_conclusion') is True]
-    if sensitive: driver('robustness', 'robustness', 110, 'all', 'negative', 'Evidence sensitivity', 'An alternative check changes the conclusion.', sensitive[0].get('result') or sensitive[0].get('test'), material=True)
+    if sensitive: driver('robustness', 'robustness', 100, 'all', 'negative', 'Diagnostic confidence', 'The main cause remains uncertain.', 'Competing explanations for the warnings are close; the diagnosis is low-confidence. This affects how much to rely on the cause, not whether the warnings fired.', ' '.join(str(c.get('result') or c.get('test') or '') for c in sensitive), material=True)
     if engine.get('path') in ('fallback_heuristic', 'error'): driver('coverage', 'coverage', 120, 'coverage', 'negative', 'Analysis limitation', 'The full validity analysis was unavailable.', 'This report uses a fallback or incomplete diagnosis.', material=True)
     fund_text = _plain(claude_fs_html) if is_equity_pair else ''
     stance = (dict(fundamental_stance) if isinstance(fundamental_stance, dict) and fundamental_stance.get('state') in ('for', 'neutral', 'against') else _stance(memo_text, fund_text, is_equity_pair))
     if fund_text or (is_equity_pair and funds):
         _ft = {'for':('positive','Fundamentals support the position.'), 'against':('negative','Fundamentals lean against the position.'), 'neutral':('neutral','Fundamentals give no edge either way.')}.get(stance['state'], ('neutral','Review the relative business case.'))
         driver('fundamentals', 'fundamentals', 70 if stance['state'] != 'against' else 100, 'fundamentals', _ft[0], 'Business case', _ft[1], ('Conviction ' + stance['conviction'].lower() + '. ' if stance.get('conviction') else '') + 'Earnings, valuation and analyst evidence are in the research.', 'The fundamental stance is combined with the engine view to produce the decision; it does not replace it.')
-    conditions = [
-        {'title':'A change in relationship health', 'detail':'Reassess diagnostic concerns and robustness checks.', 'topic':'structure'},
-        {'title':'A change in market support', 'detail':'Review the regime, timing and whether the position still fits.', 'topic':'timing'},
-        {'title':'A payoff that compensates for costs and risk', 'detail':'Include trading costs, financing and the intended holding period.', 'topic':'thesis'}]
-    if is_equity_pair and fund_text: conditions[1] = {'title':'A change in the relative business case', 'detail':'Review results, guidance and catalysts in the research.', 'topic':'fundamentals'}
+    conditions = []  # built after the inputs are known
     signals = []
     for code, (label, question) in FM.items():
         item = active.get(code)
@@ -303,9 +325,13 @@ def generate_html_report(
                  'DEGRADED':{'state':'strained','label':'Under strain','tone':'negative','detail':'Diagnostics show the relationship weakening.'},
                  'BROKEN':{'state':'broken','label':'Broken','tone':'broken','detail':'The relationship has stopped behaving as expected.'},
                  'INVALID':{'state':'broken','label':'Broken','tone':'broken','detail':'The relationship has stopped behaving as expected.'}}.get(state, {'state':'unknown','label':'Not assessed','tone':'neutral','detail':'Relationship diagnostics were not supplied.'})
-    if active and state == 'VALID':
-        _first = next(iter(active.values()))
-        health_in['detail'] = 'Behaving normally. One thing has changed: ' + str(_first.get('summary') or FM.get(next(iter(active)), ('a diagnostic', ''))[0]).split('.')[0].lower() + '.'
+    n_warn = len(active)
+    if state == 'VALID' and n_warn:
+        health_in['label'] = f'Healthy, {n_warn} warning{"s" if n_warn > 1 else ""}'
+        health_in['tone'] = 'negative' if n_warn >= 2 else 'positive'
+        health_in['detail'] = f'Still within its normal range, but {n_warn} warning{"s are" if n_warn > 1 else " is"} active: {_nouns_text}.'
+    elif state == 'DEGRADED' and n_warn:
+        health_in['detail'] = f'Weakening; {n_warn} warning{"s" if n_warn > 1 else ""} active: {_nouns_text}.'
     verb, idea_verb, rule = _decide(action, state, stats_in, fund_in, risk_in, adf_p, z_last)
     inputs = [dict(key='health', name='Relationship', topic='structure', **health_in),
               dict(key='statistics', name='Statistics', topic='chart', **stats_in),
@@ -321,16 +347,24 @@ def generate_html_report(
     idea_inputs = [dict(inputs[0]), dict(inputs[1]), dict(inputs[2]), dict(key='downside', name='Downside', topic='risk', **downside)]
     # Plain-English "why" paragraph: the four inputs reconciled, no engine vocabulary.
     why = []
-    why.append({'strong':'The pair is behaving normally', 'strained':'The relationship is under strain', 'broken':'The relationship has broken'}.get(health_in['state'], 'Relationship health is not assessed'))
-    if stats_in['state'] == 'for': why[-1] += f', and the spread is about {abs(z_last):.1f}σ against the position, so a partial recovery is the statistical expectation.'
-    elif stats_in['state'] == 'against' and z_last is not None and z_last >= 0.75: why[-1] += f', but the spread is about {abs(z_last):.1f}σ ahead of the position and reversion would give back gains.'
-    elif stats_in['state'] == 'against': why[-1] += ', but the spread is trending rather than reverting.'
-    else: why[-1] += ', with the spread near its reference.'
+    if health_in['state'] == 'strong' and n_warn >= 2:
+        why.append(f'The pair is still within its normal range, but {n_warn} warnings are active — {_nouns_text} — and the engine’s position rule fires when they co-occur')
+    elif health_in['state'] == 'strong' and n_warn == 1:
+        why.append(f'The pair is behaving normally, with one mild warning on {_nouns_text}')
+    else:
+        why.append({'strong':'The pair is behaving normally', 'strained':'The relationship is under strain', 'broken':'The relationship has broken'}.get(health_in['state'], 'Relationship health is not assessed'))
+    _multi = health_in['state'] == 'strong' and n_warn >= 2
+    if stats_in['state'] == 'for': why[-1] += ('. The spread is' if _multi else ', and the spread is') + f' about {abs(z_last):.1f}σ against the position, so a partial recovery is the statistical expectation.'
+    elif stats_in['state'] == 'against' and z_last is not None and z_last >= 0.75: why[-1] += ('. The spread is' if _multi else ', but the spread is') + f' about {abs(z_last):.1f}σ ahead of the position, so reversion would give back gains.'
+    elif stats_in['state'] == 'against': why[-1] += ('. The spread is' if _multi else ', but the spread is') + ' trending rather than reverting.'
+    else: why[-1] += ('. The spread sits' if _multi else ', with the spread') + ' near its reference.'
     if fund_in['state'] in ('for','against','neutral'):
         why.append({'for':'Fundamentals support the position', 'against':'Fundamentals lean the other way', 'neutral':'Fundamentals give no edge either way'}[fund_in['state']] + (f" with {stance['conviction'].lower()} conviction." if stance.get('conviction') else '.'))
     if risk_in['state'] == 'stretched': why.append(f'Held {window}, the position is {abs(ret_pct):.0f}% {"down" if ret_pct < 0 else "up"} with a {dd_pct:.0f}% drawdown along the way.')
     elif risk_in['state'] in ('elevated','contained') and ret_pct is not None: why.append(f'Held {window}, the position is {ret_pct:+.0f}% with a {dd_pct:.0f}% maximum drawdown.')
-    why.append({'Hold':'Nothing argues for adding and nothing argues for leaving.', 'Reduce':'Enough is pulling against the position to take some off.', 'Exit':'The case for holding no longer holds together.', 'Build':'The setup is as strong as this relationship offers.'}[verb])
+    _conf = _num(v.get('confidence'))
+    if sensitive and verb in ('Reduce', 'Exit'): why.append('The main cause of the warnings is uncertain' + (f' (diagnostic confidence {_conf*100:.0f}%)' if _conf is not None and _conf <= 1 else '') + '; that lowers how much to read into the cause, not whether the rule applies.')
+    if not (verb == 'Exit' and n_warn >= 2): why.append({'Hold':'Nothing argues for adding and nothing argues for leaving.', 'Reduce':'Enough is pulling against the position to take some off.', 'Exit':'The case for holding no longer holds together.', 'Build':'The setup is as strong as this relationship offers.'}[verb])
     _h = {'strong':'The pair is behaving normally', 'strained':'The relationship is under strain', 'broken':'The relationship has broken'}.get(health_in['state'], 'Relationship health is not assessed')
     if stats_in['state'] == 'for': _h += f'; the spread is about {abs(z_last):.1f}σ against this direction, so the entry is on the cheap side.'
     elif stats_in['state'] == 'against' and z_last is not None and z_last >= 0.75: _h += f'; the spread is already about {abs(z_last):.1f}σ in favour of this direction, so entering now is buying after the move.'
@@ -342,8 +376,24 @@ def generate_html_report(
         idea_why.append(f'This long/short has moved {ret_pct:+.0f}% {window}' + (f' with a {dd_pct:.0f}% drawdown along the way' if dd_pct >= 8 else '') + ('; that is the setup, not a loss.' if ret_pct < 0 else '; there is less left to recover.'))
     idea_why.append('The bar for a new position is a healthy relationship, a spread beyond 2σ in its favour and fundamentals that do not argue against it' + (' — met today.' if idea_verb == 'Build' else ' — not met today.') + ' Net payoff after costs is not modelled; check it before committing capital.')
     idea_summary = ' '.join(x for x in idea_why if x)
-    verdict = {'verb':verb, 'ideaVerb':idea_verb, 'tone':{'Build':'positive','Hold':'neutral','Reduce':'negative','Exit':'broken'}[verb], 'summary':' '.join(why), 'rule':rule, 'engineDecision':action, 'engineRationale':rationale}
     next_review = _next_catalyst(memo_text, fund_text, after=asof)
+    _score = _num(v.get('score'))
+    conditions.append({'title':'Relationship warnings', 'topic':'structure',
+        'now': (f'{state.capitalize() if state else "Unknown"}' + (f', score {_score:.0f}/100' if _score is not None else '') + (f', {n_warn} warning{"s" if n_warn != 1 else ""} active ({_nouns_text})' if n_warn else ', no warnings active')),
+        'reassess': ('Warnings fall to one or none, or the relationship state changes.' if n_warn >= 2 else 'A second warning appears, or the relationship state changes.' if n_warn == 1 else 'Any warning appears, or the relationship state changes.')})
+    if z_last is not None:
+        conditions.append({'title':'Spread versus reference', 'topic':'chart', 'now': f'{z_last:+.1f}σ from its rolling reference',
+            'reassess': ('It crosses back through zero, or moves beyond ±2σ.' if abs(z_last) < 2 else 'It returns inside ±2σ.')})
+    if is_equity_pair and stance.get('state') in ('for','neutral','against'):
+        _w = stance.get('wins') or {}
+        conditions.append({'title':'Fundamental balance', 'topic':'fundamentals',
+            'now': fund_in['label'] + (f" — scorecard {' vs '.join(f'{t} {n}' for t, n in _w.items())}" if _w else ''),
+            'reassess': 'The scorecard margin reaches two dimensions either way' + (f', or after {next_review["title"]} on {next_review["date"]}.' if next_review else ', or after the next results.')})
+    conditions.append({'title':'Net payoff after costs', 'topic':'thesis', 'now': 'Not modelled', 'reassess': 'A holding period, trading costs and financing are specified and the expected payoff clears them.'})
+    risk_strip = [{'label':'Gross exposure', 'value': f'USD {gross:,.0f}' if gross else '—', 'note': (f"Long {', '.join(longs)} · Short {', '.join(shorts)}" if longs or shorts else '')},
+                  {'label':'One-day 95% loss threshold', 'value': f"USD {risk['var95Percent']*gross/100:,.0f}" if gross and risk.get('var95Percent') is not None else (f"{risk['var95Percent']:.1f}%" if risk.get('var95Percent') is not None else '—'), 'note': (f"{risk['var95Percent']:.2f}% of gross · historical estimate" if risk.get('var95Percent') is not None else '')},
+                  {'label':'Average loss beyond that threshold', 'value': f"USD {risk['expectedShortfall95Percent']*gross/100:,.0f}" if gross and risk.get('expectedShortfall95Percent') is not None else (f"{risk['expectedShortfall95Percent']:.1f}%" if risk.get('expectedShortfall95Percent') is not None else '—'), 'note': (f"{risk['expectedShortfall95Percent']:.2f}% of gross · one-day, historical" if risk.get('expectedShortfall95Percent') is not None else '')}]
+    verdict = {'verb':verb, 'ideaVerb':idea_verb, 'tone':{'Build':'positive','Hold':'neutral','Reduce':'negative','Exit':'broken'}[verb], 'summary':' '.join(why), 'rule':rule, 'engineDecision':action, 'engineRationale':rationale}
     report = dict(
         schemaVersion=1, id=portfolio_name, portfolioName=portfolio_name, asOf=asof, illustrative=False, hasDates=bool(analysis_has_dates), sector=portfolio_name,
         assets={'long':asset(longs,'Long'), 'short':asset(shorts,'Short')}, hasLong=bool(longs), hasShort=bool(shorts),
@@ -355,14 +405,17 @@ def generate_html_report(
         newIdea={'headline':[idea_verb], 'summary':idea_summary, 'label':'New idea: '+idea_verb, 'assessment':idea_verb, 'tone':'positive' if idea_verb=='Build' else 'neutral'},
         ideaInputs=idea_inputs,
         opportunity={'assessed':False, 'summary':'Net payoff not modelled', 'detail':'The engine supplies a position decision, not a calibrated payoff forecast after trading, financing and borrowing costs. Historical returns and spread distance do not substitute for that forecast.'},
-        drivers=drivers, conditions=conditions, risk=risk, nextReview=next_review,
+        drivers=drivers, conditions=conditions, risk=risk, riskStrip=risk_strip, nextReview=next_review,
         regime={'available':bool(regime), 'label':backdrop, 'summary':str(regime.get('strategy') or '')}, signals=signals,
         robustness={'competingExplanations':[{'summary':str(c.get('label',''))+': '+str(c.get('evidence','')), **c} for c in competing if isinstance(c,dict)],
                     'counterfactuals':[{'summary':str(c.get('test','Check'))+': '+str(c.get('result',''))+(' — changes the conclusion.' if c.get('changes_conclusion') else ''), **c} for c in counter if isinstance(c,dict)],
                     'dependencies':details.get('dependencies') or raw.get('dependencies') or [], 'trustAdjustment':details.get('trust_penalty') if details.get('trust_penalty') is not None else raw.get('trust_penalty')},
-        chart={'title':'How unusual is the current move?', 'description':'Portfolio value relative to its rolling reference', 'label':'Normalized portfolio path', 'illustrative':False,
+        chart={'title':'How has this long/short behaved?', 'description':'Historical performance of this long/short construction, before costs', 'label':'Normalized portfolio path', 'illustrative':False,
                'reference':{'lower':-2,'upper':2} if series else None, 'series':series, 'events':events, 'snapshots':[],
-               'definition':f'The engine’s rolling z-score of cumulative portfolio value: (value − rolling mean) / rolling standard deviation, using {chart_window} observations. This is not an estimated cointegrating residual. Warm-up and zero-variance observations are omitted. The ±2 band is a statistical reference, not a trade rule or proof of validity.'},
+               'views':{'performance':{'title':'How has this long/short behaved?', 'description':f'Historical return of this construction {window}, before costs. Not a live P&L unless it matches your entry date.', 'label':'Cumulative return', 'unit':'%', 'axis':'Return · %', 'series':perf_series, 'reference':None, 'headline':(f'{ret_pct:+.1f}%' if ret_pct is not None else ''), 'headlineNote':f'Full-window return {window}'},
+                        'drawdown':{'title':'How painful did the path get?', 'description':'Fall from the running high of the same construction, in percent.', 'label':'Drawdown from peak', 'unit':'%', 'axis':'Drawdown · %', 'series':dd_series, 'reference':None, 'headline':(f'−{dd_pct:.1f}%' if dd_pct is not None else ''), 'headlineNote':'Maximum drawdown in the window'},
+                        'unusualness':{'title':'How unusual is the current move?', 'description':'Portfolio value relative to its rolling reference, in standard deviations.', 'label':'Normalized portfolio path', 'unit':'σ', 'axis':'Portfolio distance · σ', 'series':series, 'reference':{'lower':-2,'upper':2} if series else None, 'headline':(f'{z_last:+.1f}σ' if z_last is not None else ''), 'headlineNote':'Latest distance from the rolling reference'}},
+               'definition':f'Performance is the cumulative return of the long/short construction from the first observation in the window, before costs. Drawdown is the fall from the running high of that same path. Unusualness is the engine’s rolling z-score of cumulative portfolio value: (value − rolling mean) / rolling standard deviation, using {chart_window} observations. This is not an estimated cointegrating residual. Warm-up and zero-variance observations are omitted. The ±2 band is a statistical reference, not a trade rule or proof of validity.'},
         research={'trade':str(memo_text or ''), 'fundamentals':fund_text, 'metrics':funds if is_equity_pair else {}},
         diagnostics={'validity':raw, 'regime':regime, 'statistics':stats, 'decision':dd, 'positions':{'long_weights':longs,'short_weights':shorts,'gross_exposure':gross}, 'analysis_observations':analysis_period_days},
         referenceCharts=[], sources=[{'label':'Bavella analysis engine','date':asof,'detail':'Calculated from submitted exposure and available observations. Position decision and validity are preserved separately.'}],
@@ -401,7 +454,7 @@ def _print_report(report):
     out.append('<h3>Evidence</h3>')
     for d in report['drivers']: out.append('<p><strong>'+e(d['title'])+'</strong> '+e(d['detail'])+'</p>')
     out.append('<h3>Reassessment conditions</h3><ul>')
-    for c in report['conditions']: out.append('<li>'+e(c['title'])+': '+e(c['detail'])+'</li>')
+    for c in report['conditions']: out.append('<li>'+e(c['title'])+' — now: '+e(c.get('now') or c.get('detail') or '')+'; reassess if: '+e(c.get('reassess') or '')+'</li>')
     out.append('</ul><h3>Risk reference</h3>')
     r=report['risk']
     for title,key in [('95% loss threshold','var95Percent'),('Average beyond threshold','expectedShortfall95Percent')]:
