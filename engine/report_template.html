@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="description" content="Bavella relationship intelligence: understand the investment case, explore the evidence and review what could change.">
+<title>Bavella — Relationship intelligence</title>
+<style>:root{color-scheme:light;--ink:#17273c;--muted:#5c6b7d;--subtle:#7b8999;--canvas:#f4f6f9;--paper:#fff;--line:#dce3ec;--line-soft:#eaf0f5;--navy:#13253c;--blue:#345fb0;--blue-soft:#eff4fc;--green:#137257;--green-soft:#eaf5f0;--amber:#94621e;--amber-soft:#faf3e7;--red:#a7374c;--red-soft:#fcf0f3;--shadow:0 8px 30px #192a4110;font-family:"Aptos","Segoe UI",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--ink);background:var(--canvas)}
+*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button,summary{cursor:pointer}button{color:inherit}button:disabled{cursor:default;opacity:.4}button:focus-visible,summary:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #719ad8;outline-offset:3px}button,input,select{-webkit-tap-highlight-color:transparent}h1,h2,h3,p{margin:0}h2{font-size:1.1rem;line-height:1.35;font-weight:600;letter-spacing:-.02em}button{transition:background-color .15s,color .15s}button:hover{background:var(--blue-soft)}[hidden]{display:none!important}.muted{color:var(--muted)}.skip-link{position:absolute;left:16px;top:-60px;background:white;padding:12px;z-index:50}.skip-link:focus{top:8px}.topbar{background:var(--navy);color:#f2f6ff}.topbar-inner{max-width:1384px;margin:auto;min-height:68px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;gap:24px}.brand{font-size:.9rem;letter-spacing:.19em;font-weight:650;display:flex;align-items:center;gap:12px}.brand-mark{width:17px;height:17px;border:1px solid #a8c0e7;box-shadow:inset 0 0 0 4px var(--navy);background:#a8c0e7}.brand-unit{font-size:.75rem;color:#bbcadc;letter-spacing:0;font-weight:400;border-left:1px solid #45576e;padding-left:20px;margin-left:8px}.data-context{font-size:.75rem;display:flex;gap:14px;color:#bdcbdc;align-items:center}.example-tag{border:1px solid #5a6e87;border-radius:4px;padding:3px 7px}.app{max-width:1320px;margin:0 auto;padding:0 32px 28px}.page-head{padding:28px 0 22px;display:flex;justify-content:space-between;align-items:center;gap:24px}.eyebrow{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:550;margin-bottom:7px}h1{font-size:1.9rem;letter-spacing:-.045em;line-height:1.25;font-weight:600}.pair-divider{font-weight:350;color:#8793a3;padding:0 5px}.position-line{display:flex;gap:14px;font-size:.85rem;color:var(--muted);margin-top:10px}.position-line span:first-child{color:var(--green)}.position-line span:last-child{color:var(--red)}.position-separator{color:#a0aab8}.review-mode{font-size:.75rem;color:var(--muted);display:grid;gap:4px;min-width:164px}.review-mode select{color:var(--ink);font-size:.875rem;font-weight:500;border:1px solid var(--line);background:var(--paper);padding:9px 32px 9px 11px;border-radius:5px;width:100%}.viewbar{border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px}.view-tabs{display:flex;gap:26px}.view-tabs button{border:0;background:none;padding:12px 0;color:var(--muted);font-size:.875rem;border-bottom:2px solid transparent}.view-tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--blue);font-weight:600}.text-button{border:0;background:none;color:var(--blue);font-size:.8125rem;padding:3px 0;display:inline-flex;align-items:center;gap:7px;text-align:left;border-radius:2px}.text-button:hover{background:none;color:#173e87;text-decoration:underline;text-underline-offset:4px}.evidence-top{font-size:.8125rem}.assessment{display:grid;grid-template-columns:minmax(0,1fr) 238px;gap:38px;align-items:center;margin-bottom:27px}.assessment h2{font-size:2.05rem;font-weight:500;letter-spacing:-.04em;line-height:1.18;max-width:740px}.assessment h2 span{display:block;color:var(--muted)}.assessment-copy>p:not(.eyebrow){font-size:.875rem;color:var(--muted);max-width:650px;margin-top:12px}.assessment-status{display:flex;gap:20px;flex-wrap:wrap;margin-top:17px}.status{border:0;background:none;padding:0;color:var(--muted);font-size:.8125rem;display:inline-flex;gap:7px;align-items:center}.status::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--subtle);flex:none}.status[data-tone=positive]::before{background:var(--green)}.status[data-tone=negative]::before{background:var(--amber)}.status[data-tone=broken]::before{background:var(--red)}.stance{border-left:1px solid var(--line);padding:7px 0 7px 26px}.stance strong{font-size:1.75rem;color:var(--red);font-weight:500;letter-spacing:-.02em}.stance[data-tone=neutral] strong{color:var(--ink)}.stance>p:not(.eyebrow){font-size:.8125rem;color:var(--muted);margin:6px 0 11px}.analysis-grid{display:grid;grid-template-columns:minmax(0,1fr) 275px;gap:26px}.chart-panel{border:1px solid var(--line);background:var(--paper);border-radius:7px;padding:21px 22px 14px;min-width:0;box-shadow:var(--shadow)}.chart-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.chart-heading p{font-size:.8125rem;color:var(--muted);margin-top:5px}.chart-ranges{display:flex;gap:3px;flex:none}.chart-ranges button{font-size:.8125rem;background:none;border:0;border-radius:4px;color:var(--muted);padding:5px 8px}.chart-ranges button[aria-pressed=true]{background:var(--blue-soft);color:var(--blue);font-weight:600}.chart-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:18px}.chart-key{display:flex;align-items:center;gap:7px;font-size:.75rem;color:var(--muted);flex-wrap:wrap}.series-key{width:17px;height:2px;background:var(--blue)}.band-key{width:14px;height:9px;background:var(--blue-soft);border:1px solid var(--line);margin-left:10px}.chart-tools{display:flex;gap:4px;align-items:center}.chart-tools button{font-size:.75rem;border:1px solid var(--line);background:var(--paper);padding:3px 7px;border-radius:3px;min-width:28px}.chart-tools button:hover{background:var(--blue-soft)}.chart-tools button:last-child{margin-left:3px;border-color:transparent;color:var(--muted)}#chart-host{margin-top:3px;position:relative;min-width:0}.chart-caption{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:.75rem;border-top:1px solid var(--line-soft);padding-top:10px;margin-top:7px}.chart-caption .text-button{font-size:.75rem}.reason-header{display:flex;gap:8px;justify-content:space-between;align-items:center;padding-top:5px;margin-bottom:5px}.reason-header>span{font-size:.75rem;color:var(--muted)}.driver{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:17px 0}.driver:last-child{border-bottom:0}.driver:hover{background:none}.driver:hover strong{color:var(--blue)}.driver .driver-role{display:block;font-size:.75rem;color:var(--amber);margin-bottom:7px}.driver[data-tone=positive] .driver-role{color:var(--green)}.driver[data-tone=neutral] .driver-role{color:var(--muted)}.driver strong{display:block;font-size:.95rem;font-weight:500;line-height:1.4}.driver .driver-detail{display:block;font-size:.8125rem;color:var(--muted);margin-top:7px}.driver .driver-link{display:block;font-size:.75rem;color:var(--blue);margin-top:8px}.all-findings{margin-top:14px}.followup-grid{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:36px;margin-top:28px;border-top:1px solid var(--line);padding-top:24px}.section-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}.section-heading .text-button{font-size:.75rem}.reassessment ol{padding:0;margin:16px 0 0;list-style:none;counter-reset:conditions}.reassessment li{counter-increment:conditions;display:flex;gap:13px;font-size:.875rem;align-items:flex-start;padding:8px 0}.reassessment li::before{content:counter(conditions,decimal-leading-zero);font-size:.75rem;color:var(--muted);min-width:20px;padding-top:3px}.reassessment li button{display:block;border:0;background:none;padding:0;text-align:left;font-size:inherit}.reassessment li button:hover{color:var(--blue)}.reassessment li small{display:block;font-size:.8125rem;color:var(--muted);margin-top:2px}.catalyst{display:flex;gap:12px;align-items:flex-start;margin-top:15px;padding-top:14px;border-top:1px solid var(--line);font-size:.8125rem;color:var(--muted)}.catalyst strong{color:var(--ink);font-weight:500}.catalyst p span{display:block;margin-top:2px}.calendar-mark{font-size:1.2rem}.risk-panel{border-left:1px solid var(--line);padding-left:26px}.risk-panel>p:not(.eyebrow){font-size:.8125rem;color:var(--muted);margin-top:8px}.risk-panel>.text-button{margin-top:13px}.risk-row{display:flex;justify-content:space-between;gap:12px;font-size:.8125rem;color:var(--muted);margin-top:12px}.risk-row strong{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}.selection-context{border-top:1px solid var(--line);padding-top:14px;margin-top:12px;display:grid;grid-template-columns:auto 1fr;gap:12px 22px;align-items:center}.selection-context strong{font-size:.875rem;font-weight:600}.selection-context #selected-value{font-size:.8125rem;color:var(--blue);margin-left:10px;font-variant-numeric:tabular-nums}.selection-context>p{font-size:.8125rem;color:var(--muted)}.selection-context .eyebrow{font-size:.75rem}.selection-context .text-button{grid-column:1/-1}footer{margin-top:27px;padding-top:17px;border-top:1px solid var(--line);display:flex;gap:14px;justify-content:space-between;font-size:.75rem;color:var(--muted)}footer .text-button{font-size:.75rem}
+[data-layout=explore]>.assessment{display:none}[data-layout=explore] .analysis-grid{grid-template-columns:minmax(0,1fr) 256px}[data-layout=explore] .decision-context{border-left:1px solid var(--line);padding-left:24px}[data-layout=explore] .chart-panel{padding-top:22px}[data-layout=explore] .followup-grid{display:none}.explore-assessment{padding-bottom:22px;border-bottom:1px solid var(--line);margin-bottom:19px}.explore-assessment h2{font-size:1.4rem;font-weight:500;line-height:1.2;margin-bottom:12px}.explore-assessment #explore-stance{font-size:1.1rem;color:var(--red)}.explore-assessment .muted{font-size:.75rem;margin-top:5px}.explore-next{border-top:1px solid var(--line);padding-top:18px;margin-top:20px}
+dialog{padding:0;border:0;border-left:1px solid var(--line);background:var(--paper);color:var(--ink);width:min(590px,94vw);max-width:none;max-height:100dvh;height:100dvh;position:fixed;inset:0 0 0 auto;margin:0;box-shadow:-20px 0 70px #16284225}dialog[open]{display:flex;flex-direction:column}dialog::backdrop{background:#12233b59;backdrop-filter:blur(2px)}.drawer-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:28px 30px 22px;border-bottom:1px solid var(--line);flex:none}.drawer-head h2{font-size:1.55rem;letter-spacing:-.03em}.icon-button{font-size:1.65rem;line-height:1;border:0;background:var(--canvas);padding:6px 10px;border-radius:5px;flex:none}.drawer-body{padding:25px 30px;overflow-y:auto;overscroll-behavior:contain;flex:1}.drawer-summary{font-size:1rem;line-height:1.6;margin-bottom:26px;color:var(--muted)}.drawer-footer{padding:16px 30px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:16px;flex:none;background:var(--paper);font-size:.75rem;color:var(--muted)}.button{border:1px solid var(--line);background:var(--paper);padding:8px 13px;border-radius:5px;font-size:.8125rem;white-space:nowrap}.evidence-block{border-top:1px solid var(--line);padding-top:19px;margin-top:23px}.evidence-block h3{font-size:.95rem;font-weight:600;line-height:1.4;margin-bottom:12px}.evidence-block p{font-size:.875rem;color:var(--muted);line-height:1.6;margin-top:8px}.evidence-block ul{padding-left:19px;color:var(--muted);font-size:.875rem}.evidence-block li{padding:5px 0}.evidence-definition{margin:0;display:grid;gap:0}.evidence-definition>div{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px solid var(--line-soft);font-size:.875rem}.evidence-definition dt{color:var(--muted)}.evidence-definition dd{margin:0;text-align:right;font-weight:500}.signal-row{border-bottom:1px solid var(--line-soft);padding:14px 0}.signal-row strong{display:block;font-size:.875rem;font-weight:500}.signal-row p{font-size:.8125rem;color:var(--muted);margin-top:3px}.signal-row small{font-size:.75rem;color:var(--subtle);display:block;margin-top:4px}.evidence-block details{border-bottom:1px solid var(--line-soft);padding:13px 0}.evidence-block summary{font-size:.875rem;font-weight:500}.source-note{font-size:.75rem;color:var(--muted);background:var(--canvas);padding:14px 16px;border-radius:4px;margin-top:16px}.error-banner{margin-top:18px;border:1px solid #ebc4cc;background:var(--red-soft);padding:14px 16px;font-size:.875rem;color:var(--red)}.no-script{margin:24px auto;max-width:600px;padding:20px;border:1px solid var(--line);background:white}.empty-copy{font-size:.875rem;color:var(--muted);padding:20px 0}.reference-tag{display:block;font-size:.75rem;color:var(--muted);margin-top:12px}
+@media(min-width:1500px){.app{max-width:1420px}.analysis-grid{grid-template-columns:minmax(0,1fr) 305px}.assessment h2{font-size:2.2rem}}
+@media(max-width:1000px){.assessment{grid-template-columns:minmax(0,1fr) 195px;gap:24px}.assessment h2{font-size:1.8rem}.analysis-grid{grid-template-columns:minmax(0,1fr) 235px;gap:21px}.chart-panel{padding:18px 16px 12px}.chart-heading{flex-wrap:wrap;gap:10px}.followup-grid{grid-template-columns:minmax(0,1fr) 265px;gap:24px}.section-heading{align-items:flex-start;flex-direction:column;gap:6px}.stance{padding-left:22px}.brand-unit{display:none}.driver strong{font-size:.875rem}.selection-context{grid-template-columns:1fr}.page-head{gap:20px}h1{font-size:1.65rem}}
+@media(max-width:760px){.topbar-inner{padding:0 20px;min-height:62px}.app{padding:0 20px 24px}.data-context{gap:8px;flex-wrap:wrap;justify-content:flex-end;font-size:.75rem}.example-tag{font-size:.75rem}.page-head{padding:23px 0 19px}.review-mode{min-width:146px}.viewbar{margin-bottom:22px}.view-tabs{gap:22px}.evidence-top{font-size:.75rem}.assessment{grid-template-columns:1fr 170px;gap:20px}.assessment h2{font-size:1.65rem}.assessment-copy>p:not(.eyebrow){font-size:.8125rem}.assessment-status{gap:13px}.analysis-grid,[data-layout=explore] .analysis-grid{grid-template-columns:1fr}.decision-context{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 19px}.reason-header{grid-column:1/-1}.decision-context #drivers{display:contents}.driver{padding:14px 0;border:0}.all-findings{grid-column:1/-1;margin-top:8px}.followup-grid{grid-template-columns:1fr;margin-top:23px;gap:24px}.risk-panel{border-left:0;border-top:1px solid var(--line);padding:20px 0 0}.risk-row{max-width:380px}.section-heading{flex-direction:row;align-items:center}.risk-panel>p:not(.eyebrow){max-width:550px}[data-layout=explore] .decision-context{padding-left:0;border:0}[data-layout=explore] .explore-assessment{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;gap:8px 20px;align-items:center;padding-bottom:16px;margin-bottom:8px}.explore-assessment .eyebrow{grid-column:1/-1;margin:0}.explore-assessment h2{margin:0;font-size:1.2rem}.explore-assessment .muted{grid-column:1/-1}.explore-next{grid-column:1/-1}.selection-context{grid-template-columns:auto 1fr}.chart-heading{flex-wrap:nowrap}.drawer-head{padding:24px}.drawer-body{padding:22px 24px}.drawer-footer{padding:16px 24px}}
+@media(max-width:540px){.brand{font-size:.8rem;gap:9px}.brand-mark{width:14px;height:14px}.data-context{max-width:160px}.topbar-inner{gap:10px}.page-head{display:block}h1{font-size:1.75rem;line-height:1.2;max-width:410px}.review-mode{display:flex;align-items:center;justify-content:space-between;margin-top:17px;font-size:.8125rem}.review-mode select{width:auto;max-width:65%;font-size:.8125rem;padding:7px 25px 7px 10px}.position-line{font-size:.8125rem;gap:9px}.viewbar{align-items:center;gap:10px}.view-tabs{gap:20px}.view-tabs button{font-size:.8125rem}.evidence-top{font-size:0;gap:0}.evidence-top::before{content:'Evidence';font-size:.8125rem}.evidence-top>span{font-size:.8125rem;margin-left:5px}.assessment{grid-template-columns:1fr;gap:17px}.assessment h2{font-size:1.9rem}.stance{border-left:0;border-top:1px solid var(--line);padding:13px 0 0;display:flex;align-items:center;flex-wrap:wrap;gap:5px 16px}.stance .eyebrow{margin:0}.stance strong{font-size:1.4rem}.stance>p:not(.eyebrow){margin:0;font-size:.75rem}.stance>.text-button{font-size:.75rem;flex-basis:100%;margin-top:3px}.chart-panel{padding:18px 13px 11px;border-radius:5px}.chart-heading{flex-wrap:wrap;gap:11px}.chart-heading p{font-size:.75rem}.chart-ranges{gap:6px}.chart-toolbar{gap:9px;margin-top:13px}.chart-tools{margin-left:auto}.chart-key{font-size:.75rem}.chart-caption{align-items:flex-start;font-size:.75rem}.chart-caption .text-button{font-size:.75rem}.decision-context{display:block}.reason-header{padding-top:0}.driver{border-bottom:1px solid var(--line);padding:15px 0}.driver:last-child{border-bottom:0}.driver strong{font-size:.95rem}.driver .driver-link{display:inline;margin-left:0}.all-findings{margin-top:11px}.section-heading{display:block}.section-heading .text-button{margin-top:8px}.followup-grid{margin-top:22px}.selection-context{display:block}.selection-context>p{margin-top:7px}.selection-context>.text-button{margin-top:8px}.selection-context #selected-value{margin-left:8px}footer{display:block;font-size:.75rem}footer .text-button{font-size:.75rem;margin-top:8px}[data-layout=explore] .decision-context{display:block}[data-layout=explore] .explore-assessment{display:block}.explore-assessment h2{margin:8px 0}.explore-assessment .muted{margin-top:4px}.drawer-head h2{font-size:1.35rem}.drawer-head{padding:20px}.drawer-body{padding:20px}.drawer-footer{padding:13px 20px}.drawer-footer span{font-size:.75rem}dialog{width:100vw}.evidence-definition>div{font-size:.8125rem;gap:15px}.evidence-definition dd{max-width:55%}.eyebrow{font-size:.75rem}}
+@media(pointer:coarse){button,.text-button,.view-tabs button{min-height:44px}.driver{min-height:44px}.chart-tools button{min-width:40px}.chart-ranges button{min-width:42px}.status{min-height:32px}.chart-key{font-size:.75rem}input,select{font-size:1rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media print{.topbar{background:white;color:var(--ink);border-bottom:1px solid var(--line)}.data-context{color:var(--muted)}.brand-unit,.brand-mark,.viewbar,.review-mode,.chart-tools,.chart-ranges,.text-button,dialog,.bv-chart-navigator,.bv-chart-controls{display:none!important}.app{padding:0 10px}.assessment{display:grid!important}[data-layout=explore] .followup-grid{display:grid}.chart-panel{box-shadow:none;break-inside:avoid}.followup-grid{break-inside:avoid}.analysis-grid{grid-template-columns:2fr 1fr!important}.explore-assessment{display:none!important}.chart-heading h2{font-size:1rem}footer{margin-top:18px}}
+
+.research-copy{white-space:pre-wrap;font-size:.875rem;line-height:1.7;color:var(--muted)}.raw-evidence{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.75rem;max-width:100%}.evidence-image{display:block;width:100%;height:auto;margin-top:14px}.print-report{display:none}.print-report h1{margin:0 0 16px}.print-report h2,.print-report h3{margin:18px 0 9px}.print-report p{margin:9px 0}.research-access{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px}@media print{.app,dialog,.topbar{display:none!important}.print-report{display:block;font-size:12px;padding:12px;color:#17273c;background:#fff}.print-report svg{break-inside:avoid}.print-report h1{font-size:23px}.print-report h2{font-size:18px}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to relationship review</a>
+<header class="topbar"><div class="topbar-inner"><div class="brand"><span class="brand-mark" aria-hidden="true"></span>BAVELLA<span class="brand-unit">Relationship intelligence</span></div><div class="data-context"><span id="example-tag" class="example-tag" hidden>Example report</span><span id="data-date"></span></div></div></header>
+<main class="app" id="main">
+  <div id="upload-context"></div>
+  <div id="load-error" role="alert" class="error-banner" hidden></div>
+  <section class="page-head"><div><p class="eyebrow" id="sector"></p><h1><span id="long-name"></span><span class="pair-divider"> / </span><span id="short-name"></span></h1><p class="position-line"><span id="long-label"></span><span class="position-separator" aria-hidden="true">·</span><span id="short-label"></span></p></div><label class="review-mode">Reviewing<select id="review-mode"><option value="position">Existing position</option><option value="idea">New idea</option></select></label></section>
+  <div class="viewbar"><div class="view-tabs" role="tablist" aria-label="Relationship view"><button id="brief-tab" type="button" role="tab" aria-selected="true" aria-controls="report-view" data-view="brief">Decision brief</button><button id="explore-tab" type="button" role="tab" aria-selected="false" aria-controls="report-view" data-view="explore">Explore</button></div><button class="text-button evidence-top" type="button" data-topic="all">Evidence &amp; methodology <span aria-hidden="true">↗</span></button></div>
+  <div id="report-view" role="tabpanel" aria-labelledby="brief-tab" data-layout="brief">
+    <section class="assessment" aria-label="Current assessment"><div class="assessment-copy"><p class="eyebrow">The investment case</p><h2 id="assessment-title"></h2><p id="assessment-summary"></p><div class="assessment-status"><button type="button" class="status" id="health-status" data-topic="structure"></button><button type="button" class="status" id="thesis-status" data-topic="thesis"></button></div></div><aside class="stance"><p class="eyebrow" id="stance-label"></p><strong id="stance-value"></strong><p id="economics-state"></p><button type="button" class="text-button" data-topic="thesis">Understand the view <span aria-hidden="true">→</span></button></aside></section>
+    <div class="analysis-grid">
+      <section class="chart-panel" aria-label="Interactive relationship chart"><div class="chart-heading"><div><h2 id="chart-title">How unusual is the gap?</h2><p id="chart-description"></p></div><div class="chart-ranges" role="group" aria-label="Chart display window"><button type="button" data-range="1m" aria-pressed="false">1M</button><button type="button" data-range="3m" aria-pressed="false">3M</button><button type="button" data-range="6m" aria-pressed="false">6M</button><button type="button" data-range="all" aria-pressed="true">All</button></div></div>
+        <div class="chart-toolbar"><div class="chart-key"><span class="series-key" aria-hidden="true"></span><span id="series-label">Spread</span><span class="band-key" aria-hidden="true"></span><span>Reference range</span></div><div class="chart-tools" role="group" aria-label="Chart zoom"><button type="button" id="zoom-out" aria-label="Zoom out">−</button><button type="button" id="zoom-in" aria-label="Zoom in">+</button><button type="button" id="chart-reset">Reset view</button></div></div>
+        <div id="chart-host"></div>
+        <div class="chart-caption"><span id="chart-origin"></span><button type="button" class="text-button" data-topic="chart">How to read this chart <span aria-hidden="true">↗</span></button></div>
+        <div class="selection-context" id="selection-context" hidden><div><p class="eyebrow" id="selected-label">Selected date</p><strong id="selected-date"></strong><span id="selected-value"></span></div><p id="selected-context"></p><button type="button" class="text-button" id="selected-evidence" hidden>See what changed →</button></div>
+      </section>
+      <aside class="decision-context"><div class="explore-assessment" id="explore-assessment" hidden><p class="eyebrow" id="explore-basis">Latest assessment</p><h2 id="explore-title"></h2><p id="explore-stance"></p><p class="muted" id="explore-economics"></p></div><div class="reason-header"><h2>What matters most</h2><span id="driver-count"></span></div><div id="drivers"></div><button type="button" class="text-button all-findings" id="all-findings" data-topic="all">Review the full evidence →</button><div class="explore-next" id="explore-next" hidden><p class="eyebrow">Next decision</p><button type="button" class="text-button" data-topic="review">What would change the view? →</button></div></aside>
+    </div>
+    <section class="followup-grid"><div class="reassessment"><div class="section-heading"><div><p class="eyebrow">The next decision</p><h2>What would change this view?</h2></div><button type="button" class="text-button" data-topic="review">Review conditions ↗</button></div><ol id="conditions"></ol><div class="catalyst" id="catalyst" hidden><span class="calendar-mark" aria-hidden="true">↳</span><p><strong id="catalyst-title"></strong><span id="catalyst-date"></span></p></div></div><aside class="risk-panel"><p class="eyebrow">Position risk</p><h2 id="risk-title"></h2><p id="risk-summary"></p><div id="risk-values"></div><button type="button" class="text-button" data-topic="risk">Understand the downside →</button></aside></section>
+  </div>
+  <footer><p id="footer-source"></p><button type="button" class="text-button" data-topic="coverage">Data coverage &amp; sources ↗</button></footer>
+</main>
+<dialog id="evidence-dialog" aria-labelledby="evidence-title"><div class="drawer-head"><div><p class="eyebrow">Behind the assessment</p><h2 id="evidence-title"></h2></div><button type="button" class="icon-button" id="close-evidence" aria-label="Close evidence">×</button></div><div class="drawer-body"><p class="drawer-summary" id="evidence-summary"></p><div id="evidence-content"></div></div><div class="drawer-footer"><span id="evidence-asof"></span><button type="button" class="button" id="close-evidence-bottom">Back to review</button></div></dialog>
+<noscript><style>.app{display:none!important}.print-report{display:block!important}</style></noscript>
+<!-- Integration: replace the JSON below with the current Bavella report. The UI consumes engine findings; it does not derive trade actions from chart values. Dates use ISO 8601; percentage risk values use percentage points. Escape less-than signs as \u003c when embedding untrusted JSON in HTML. -->
+<!--__PRINT_REPORT__-->
+<script type="application/json" id="bavella-report">/*__REPORT__*/</script>
+<script>/* Bavella interactive relationship chart. No dependencies or network requests. */
+(function (global) {
+  'use strict';
+  const DAY = 86400000;
+  const NS = 'http://www.w3.org/2000/svg';
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  function dateTime(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return NaN;
+    const time = Date.parse(value + 'T00:00:00Z');
+    return Number.isFinite(time) && new Date(time).toISOString().slice(0, 10) === value ? time : NaN;
+  }
+  const iso = time => new Date(time).toISOString().slice(0, 10);
+  function cleanSeries(series) {
+    const points = new Map();
+    for (const point of Array.isArray(series) ? series : []) {
+      if (!point || typeof point.value !== 'number' || !Number.isFinite(point.value)) continue;
+      const time = dateTime(point.date);
+      if (Number.isFinite(time)) points.set(time, { date: point.date, time, value: point.value });
+    }
+    return Array.from(points.values()).sort((a, b) => a.time - b.time);
+  }
+  function cleanReference(reference) {
+    if (!reference || !Number.isFinite(reference.lower) || !Number.isFinite(reference.upper) || reference.lower >= reference.upper) return null;
+    return { lower: reference.lower, upper: reference.upper };
+  }
+  function cleanEvents(events) {
+    return (Array.isArray(events) ? events : []).filter(e => e && Number.isFinite(dateTime(e.date))).map(e => ({
+      date: e.date, time: dateTime(e.date), title: String(e.title || 'Event'), summary: String(e.summary || ''), topic: String(e.topic || 'Event')
+    })).sort((a, b) => a.time - b.time);
+  }
+  function interpolate(series, requested) {
+    if (!series.length || !Number.isFinite(requested)) return null;
+    const time = clamp(requested, series[0].time, series[series.length - 1].time);
+    let low = 0, high = series.length - 1;
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2);
+      if (series[mid].time < time) low = mid + 1;
+      else high = mid;
+    }
+    const right = series[low];
+    const left = series[Math.max(0, low - 1)];
+    const ratio = right.time === left.time ? 0 : (time - left.time) / (right.time - left.time);
+    return { time, date: iso(time), value: left.value + ratio * (right.value - left.value), interpolated: time !== left.time && time !== right.time, index: ratio < 0.5 ? Math.max(0, low - 1) : low };
+  }
+  function constrainRange(start, end, min, max, minSpan) {
+    if (![start, end, min, max].every(Number.isFinite)) return { start: min, end: max };
+    if (max <= min) return { start: min, end: max };
+    const span = clamp(end - start, Math.min(minSpan || DAY, max - min), max - min);
+    const a = clamp(start, min, max - span);
+    return { start: a, end: a + span };
+  }
+  function ticks(min, max, count) {
+    const span = max - min;
+    if (!Number.isFinite(span) || span <= 0) return [min];
+    const raw = span / Math.max(2, count || 5);
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const normalized = raw / mag;
+    const step = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * mag;
+    const result = [];
+    for (let v = Math.ceil(min / step) * step, i = 0; v <= max + step * 0.001 && i < 20; v += step, i++) result.push(Math.abs(v) < step * 1e-6 ? 0 : v);
+    return result;
+  }
+  function svg(tag, attrs, content) {
+    const node = document.createElementNS(NS, tag);
+    for (const [key, value] of Object.entries(attrs || {})) node.setAttribute(key, String(value));
+    if (content !== undefined) node.textContent = content;
+    return node;
+  }
+  function html(tag, cls, content) {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (content !== undefined) node.textContent = content;
+    return node;
+  }
+  const prettyDate = time => new Date(time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const shortDate = time => new Date(time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const formatValue = value => (value > 0 ? '+' : '') + value.toFixed(2) + 'σ';
+
+  class BavellaChart {
+    constructor(container, options) {
+      if (typeof container === 'string') container = document.querySelector(container);
+      if (!container || !container.appendChild) throw new TypeError('BavellaChart requires a container element.');
+      this.container = container;
+      this.options = options || {};
+      this.reference = cleanReference(this.options.reference);
+      this.disposers = [];
+      this.selected = null;
+      this.pinned = false;
+      this.drag = null;
+      this.lastAnnouncement = '';
+      this.frame = 0;
+      this.destroyed = false;
+      this.build();
+      this.setData(this.options.series || [], this.options.events || []);
+      if (typeof ResizeObserver !== 'undefined') {
+        this.observer = new ResizeObserver(() => this.queueRender());
+        this.observer.observe(this.container);
+      } else this.listen(global, 'resize', () => this.queueRender());
+    }
+    listen(node, type, handler, options) {
+      node.addEventListener(type, handler, options);
+      this.disposers.push(() => node.removeEventListener(type, handler, options));
+    }
+    build() {
+      this.root = html('div', 'bv-chart');
+      this.root.style.cssText = 'position:relative;width:100%;min-width:0;color:var(--ink,#172033);font-family:inherit;';
+      this.main = svg('svg', { class: 'bv-chart-svg', role: 'img', tabindex: '0', 'aria-label': 'Interactive normalized portfolio history. Use the date and range sliders below to inspect the chart by keyboard.', width: '100%' });
+      this.main.style.cssText = 'display:block;width:100%;overflow:visible;touch-action:pan-y;user-select:none;';
+      this.tip = html('div', 'bv-chart-tooltip');
+      this.tip.style.cssText = 'position:absolute;display:none;pointer-events:none;z-index:4;background:var(--paper,#fff);border:1px solid var(--line,#dfe3ea);border-radius:9px;padding:10px 12px;box-shadow:0 8px 25px #17203314;max-width:235px;font-size:12px;line-height:1.45;';
+      this.tipDate = html('div', '', '');
+      this.tipDate.style.cssText = 'font-size:12px;color:var(--muted,#667085);margin-bottom:3px;';
+      this.tipValue = html('strong', '', '');
+      this.tipValue.style.cssText = 'font-size:14px;';
+      this.tipNote = html('div', '', '');
+      this.tipNote.style.cssText = 'color:var(--muted,#667085);margin-top:3px;';
+      this.tipEvent = html('div', '', '');
+      this.tipEvent.style.cssText = 'margin-top:5px;font-weight:600;';
+      this.tip.append(this.tipDate, this.tipValue, this.tipNote, this.tipEvent);
+      this.nav = svg('svg', { class: 'bv-chart-navigator', width: '100%', height: 48, role: 'img', 'aria-label': 'Date-range navigator. Drag the selection or either edge; equivalent keyboard controls are below.' });
+      this.nav.style.cssText = 'display:block;width:100%;touch-action:none;user-select:none;';
+      this.rangeDetails = html('details', 'bv-chart-range-details');
+      this.rangeDetails.style.cssText = 'margin-top:5px;color:var(--muted,#667085);font-size:12px;';
+      this.rangeSummary = html('summary', '', 'Adjust date range');
+      this.rangeSummary.style.cssText = 'cursor:pointer;padding:3px 0;';
+      this.rangeDetails.append(this.rangeSummary);
+      this.inputs = html('div', 'bv-chart-inputs');
+      this.inputs.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;margin:6px 0 0;';
+      const input = (labelText, cls) => {
+        const label = html('label', 'bv-chart-slider-label');
+        label.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted,#667085);min-width:0;';
+        const text = html('span', '', labelText);
+        text.style.cssText = 'flex:0 0 auto;';
+        const slider = html('input', cls);
+        slider.type = 'range'; slider.min = '0'; slider.step = '1';
+        slider.setAttribute('aria-label', labelText);
+        slider.style.cssText = 'width:100%;min-width:24px;height:16px;margin:0;accent-color:var(--blue,#315fba);cursor:pointer;';
+        label.append(text, slider);
+        this.inputs.append(label);
+        return slider;
+      };
+      this.startInput = input('From', 'bv-chart-range-start');
+      this.endInput = input('To', 'bv-chart-range-end');
+      this.inspectorLabel = html('label', 'bv-chart-inspector-label');
+      this.inspectorLabel.style.cssText = 'display:flex;align-items:center;gap:12px;margin-top:12px;min-height:24px;font-size:12px;color:var(--muted,#667085);';
+      const inspectorName = html('span', '', 'Inspect date');
+      inspectorName.style.cssText = 'white-space:nowrap;';
+      this.inspectInput = html('input', 'bv-chart-inspector');
+      this.inspectInput.type = 'range'; this.inspectInput.min = '0'; this.inspectInput.step = '1';
+      this.inspectInput.setAttribute('aria-label', 'Inspect an observed date');
+      this.inspectInput.style.cssText = 'width:100%;min-width:40px;accent-color:var(--blue,#315fba);';
+      this.inspectOutput = html('output', 'bv-chart-inspector-output');
+      this.inspectOutput.style.cssText = 'white-space:nowrap;font-size:12px;min-width:80px;text-align:right;';
+      this.inspectorLabel.append(inspectorName, this.inspectInput, this.inspectOutput);
+      this.live = html('div', 'bv-chart-live');
+      this.live.setAttribute('role', 'status'); this.live.setAttribute('aria-live', 'polite');
+      this.live.style.cssText = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;';
+      this.rangeDetails.append(this.inputs);
+      this.root.append(this.main, this.tip, this.nav, this.rangeDetails, this.inspectorLabel, this.live);
+      this.container.append(this.root);
+      this.listen(this.main, 'pointermove', e => this.pointerMove(e));
+      this.listen(this.main, 'pointerleave', () => { if (!this.pinned && !this.drag && this.selected) this.clearSelection(); });
+      this.listen(this.main, 'pointerdown', e => this.pointerDown(e));
+      this.listen(this.main, 'pointerup', e => this.pointerUp(e));
+      this.listen(this.main, 'pointercancel', () => { this.drag = null; });
+      this.listen(this.main, 'wheel', e => {
+        if (!(e.ctrlKey || e.metaKey) || !this.series.length) return;
+        e.preventDefault();
+        const point = this.coords(e, this.main);
+        this.zoom(Math.exp(-clamp(e.deltaY, -150, 150) * 0.005), this.timeAt(point.x));
+      }, { passive: false });
+      this.listen(this.nav, 'pointerdown', e => this.navDown(e));
+      this.listen(this.nav, 'pointermove', e => this.navMove(e));
+      this.listen(this.nav, 'pointerup', () => { this.navDrag = null; });
+      this.listen(this.nav, 'pointercancel', () => { this.navDrag = null; });
+      this.listen(this.startInput, 'input', () => {
+        const index = Number(this.startInput.value);
+        if (this.series[index]) this.applyRange(clamp(this.series[index].time, this.domainMin, this.end - this.minSpan), this.end);
+      });
+      this.listen(this.endInput, 'input', () => {
+        const index = Number(this.endInput.value);
+        if (this.series[index]) this.applyRange(this.start, clamp(this.series[index].time, this.start + this.minSpan, this.domainMax));
+      });
+      this.listen(this.inspectInput, 'input', () => {
+        const point = this.series[Number(this.inspectInput.value)];
+        if (!point) return;
+        this.ensureVisible(point.time);
+        this.inspect(point.time, true, true);
+      });
+      this.listen(this.root, 'keydown', e => {
+        if (e.key === 'Escape') this.clearSelection();
+      });
+    }
+    setData(series, events) {
+      this.series = cleanSeries(series);
+      this.events = cleanEvents(events);
+      this.selected = null; this.pinned = false; this.tip.style.display = 'none';
+      const first = this.series[0], last = this.series[this.series.length - 1];
+      this.min = first ? first.time : 0;
+      this.max = last ? last.time : DAY;
+      // A single observation is displayed safely within a one-day visual range.
+      this.domainMin = this.min;
+      this.domainMax = this.max === this.min ? this.max + DAY : this.max;
+      this.minSpan = Math.min(7 * DAY, this.domainMax - this.domainMin);
+      this.start = this.domainMin; this.end = this.domainMax;
+      for (const el of [this.startInput, this.endInput, this.inspectInput]) {
+        el.max = String(Math.max(0, this.series.length - 1));
+        el.disabled = this.series.length < 2;
+      }
+      this.render();
+      this.notifyRange();
+      return this;
+    }
+    setRange(preset) {
+      if (!this.series.length) return this;
+      const periods = { '1m': 30, '3m': 91, '6m': 183 };
+      const days = periods[String(preset).toLowerCase()];
+      this.applyRange(days ? Math.max(this.domainMin, this.domainMax - days * DAY) : this.domainMin, this.domainMax);
+      return this;
+    }
+    zoom(factor, anchor) {
+      if (!this.series.length || !Number.isFinite(factor) || factor <= 0) return this;
+      const at = Number.isFinite(anchor) ? clamp(anchor, this.start, this.end) : (this.start + this.end) / 2;
+      const span = clamp((this.end - this.start) / factor, this.minSpan, this.domainMax - this.domainMin);
+      const fraction = (at - this.start) / Math.max(1, this.end - this.start);
+      this.applyRange(at - span * fraction, at + span * (1 - fraction));
+      return this;
+    }
+    reset() { this.clearSelection(); return this.setRange('all'); }
+    selectDate(date) {
+      const time = typeof date === 'string' ? dateTime(date) : NaN;
+      if (Number.isFinite(time) && this.series.length) {
+        const at = clamp(time, this.min, this.max);
+        this.ensureVisible(at); this.inspect(at, true, true);
+      }
+      return this;
+    }
+    clearSelection() {
+      this.selected = null; this.pinned = false; this.tip.style.display = 'none'; this.drawInspection();
+      const last = this.series[this.series.length - 1];
+      if (last) {
+        this.inspectInput.value = String(this.series.length - 1);
+        this.inspectOutput.textContent = shortDate(last.time);
+        this.inspectInput.setAttribute('aria-valuetext', prettyDate(last.time) + ', ' + formatValue(last.value));
+        this.emitSelect({ ...last, interpolated: false }, false);
+      }
+      return this;
+    }
+    ensureVisible(time) {
+      if (time >= this.start && time <= this.end) return;
+      const half = (this.end - this.start) / 2;
+      this.applyRange(time - half, time + half);
+    }
+    applyRange(start, end) {
+      const result = constrainRange(start, end, this.domainMin, this.domainMax, this.minSpan);
+      this.start = result.start; this.end = result.end;
+      this.render(); this.notifyRange();
+    }
+    notifyRange() {
+      if (typeof this.options.onRange === 'function') this.options.onRange({ start: this.series.length ? iso(this.start) : null, end: this.series.length ? iso(Math.min(this.end, this.max)) : null });
+    }
+    emitSelect(point, pinned) {
+      if (typeof this.options.onSelect !== 'function') return;
+      const event = this.events.find(e => e.date === point.date) || null;
+      this.options.onSelect({ date: point.date, value: point.value, event, pinned: !!pinned, interpolated: !!point.interpolated });
+    }
+    queueRender() {
+      if (this.frame || this.destroyed) return;
+      this.frame = requestAnimationFrame(() => { this.frame = 0; this.render(); });
+    }
+    coords(event, target) {
+      const box = target.getBoundingClientRect();
+      const view = target.viewBox.baseVal;
+      return { x: (event.clientX - box.left) * view.width / Math.max(1, box.width), y: (event.clientY - box.top) * view.height / Math.max(1, box.height) };
+    }
+    timeAt(x) { return this.start + clamp((x - this.plot.left) / this.plot.width, 0, 1) * (this.end - this.start); }
+    pointerDown(e) {
+      if (e.button !== 0 || !this.series.length) return;
+      const pos = this.coords(e, this.main);
+      if (pos.x < this.plot.left || pos.x > this.plot.right || pos.y < this.plot.top || pos.y > this.plot.bottom) return;
+      this.main.focus({ preventScroll: true });
+      this.drag = { x: pos.x, clientX: e.clientX, clientY: e.clientY, start: this.start, end: this.end, moved: false, eventDate: e.target.getAttribute('data-event-date') };
+      this.main.setPointerCapture(e.pointerId);
+    }
+    pointerMove(e) {
+      if (!this.series.length) return;
+      const pos = this.coords(e, this.main);
+      if (this.drag) {
+        const delta = pos.x - this.drag.x;
+        if (Math.abs(e.clientX - this.drag.clientX) > 5) this.drag.moved = true;
+        if (this.drag.moved) {
+          const offset = -delta / this.plot.width * (this.drag.end - this.drag.start);
+          this.applyRange(this.drag.start + offset, this.drag.end + offset);
+        }
+        return;
+      }
+      if (this.pinned || pos.x < this.plot.left || pos.x > this.plot.right || pos.y < this.plot.top || pos.y > this.plot.bottom) return;
+      const eventDate = e.target.getAttribute('data-event-date');
+      this.inspect(eventDate ? dateTime(eventDate) : this.timeAt(pos.x), false, false);
+    }
+    pointerUp(e) {
+      if (!this.drag) return;
+      const drag = this.drag; this.drag = null;
+      if (!drag.moved) {
+        const time = drag.eventDate ? dateTime(drag.eventDate) : this.timeAt(this.coords(e, this.main).x);
+        this.inspect(time, true, true);
+      }
+      if (this.main.hasPointerCapture(e.pointerId)) this.main.releasePointerCapture(e.pointerId);
+    }
+    navDown(e) {
+      if (e.button !== 0 || this.series.length < 2) return;
+      e.preventDefault();
+      const pos = this.coords(e, this.nav);
+      const nx = this.plot.left, width = this.plot.width;
+      const x1 = nx + (this.start - this.domainMin) / (this.domainMax - this.domainMin) * width;
+      const x2 = nx + (this.end - this.domainMin) / (this.domainMax - this.domainMin) * width;
+      const mode = Math.abs(pos.x - x1) < 13 ? 'start' : Math.abs(pos.x - x2) < 13 ? 'end' : pos.x >= x1 && pos.x <= x2 ? 'pan' : 'jump';
+      this.navDrag = { mode, x: pos.x, start: this.start, end: this.end };
+      this.nav.setPointerCapture(e.pointerId);
+      if (mode === 'jump') {
+        const time = this.domainMin + clamp((pos.x - nx) / width, 0, 1) * (this.domainMax - this.domainMin);
+        const half = (this.end - this.start) / 2;
+        this.applyRange(time - half, time + half);
+        this.navDrag = { mode: 'pan', x: pos.x, start: this.start, end: this.end };
+      }
+    }
+    navMove(e) {
+      if (!this.navDrag) return;
+      const pos = this.coords(e, this.nav), drag = this.navDrag;
+      const delta = (pos.x - drag.x) / this.plot.width * (this.domainMax - this.domainMin);
+      if (drag.mode === 'start') this.applyRange(clamp(drag.start + delta, this.domainMin, drag.end - this.minSpan), drag.end);
+      else if (drag.mode === 'end') this.applyRange(drag.start, clamp(drag.end + delta, drag.start + this.minSpan, this.domainMax));
+      else this.applyRange(drag.start + delta, drag.end + delta);
+    }
+    inspect(time, pinned, announce) {
+      const point = interpolate(this.series, time);
+      if (!point) return;
+      this.selected = point; this.pinned = !!pinned;
+      this.inspectInput.value = String(point.index);
+      this.inspectOutput.textContent = shortDate(point.time);
+      this.inspectInput.setAttribute('aria-valuetext', prettyDate(point.time) + ', ' + formatValue(point.value));
+      this.drawInspection();
+      this.emitSelect(point, pinned);
+      if (announce) {
+        this.live.textContent = prettyDate(point.time) + ': ' + formatValue(point.value) + '. Selection pinned. Escape returns to the latest observation.';
+      }
+    }
+    render() {
+      if (this.destroyed) return;
+      const width = Math.max(180, Math.round(this.container.clientWidth || 800));
+      const mobile = width < 540;
+      const height = mobile ? 248 : 282;
+      this.width = width; this.height = height;
+      this.plot = { left: mobile ? 43 : 48, right: width - (mobile ? 13 : 18), top: 20, bottom: height - 38 };
+      this.plot.width = this.plot.right - this.plot.left; this.plot.height = this.plot.bottom - this.plot.top;
+      this.main.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      this.main.setAttribute('height', String(height));
+      this.main.replaceChildren();
+      this.nav.replaceChildren();
+      this.nav.setAttribute('viewBox', `0 0 ${width} 48`);
+      if (!this.series.length) {
+        this.main.append(svg('text', { x: width / 2, y: height / 2 - 8, 'text-anchor': 'middle', fill: 'var(--ink,#172033)', 'font-size': 14 }, 'No dated portfolio history available'));
+        this.main.append(svg('text', { x: width / 2, y: height / 2 + 15, 'text-anchor': 'middle', fill: 'var(--muted,#667085)', 'font-size': 12 }, 'Add dated observations to explore this relationship.'));
+        this.nav.style.display = 'none'; this.rangeDetails.style.display = 'none'; this.inspectorLabel.style.display = 'none'; this.tip.style.display = 'none';
+        return;
+      }
+      this.nav.style.display = 'block'; this.rangeDetails.style.display = 'block'; this.inspectorLabel.style.display = 'flex';
+      // The vertical scale is fixed to the full supplied history when dates are zoomed.
+      let low = this.reference ? this.reference.lower : 0;
+      let high = this.reference ? this.reference.upper : 0;
+      for (const point of this.series) { low = Math.min(low, point.value); high = Math.max(high, point.value); }
+      const padding = Math.max(0.35, (high - low) * 0.12);
+      this.yMin = low - padding; this.yMax = high + padding;
+      this.x = time => this.plot.left + (time - this.start) / (this.end - this.start) * this.plot.width;
+      this.y = value => this.plot.bottom - (value - this.yMin) / (this.yMax - this.yMin) * this.plot.height;
+      if (this.reference) {
+        const band = svg('rect', { x: this.plot.left, y: this.y(this.reference.upper), width: this.plot.width, height: this.y(this.reference.lower) - this.y(this.reference.upper), fill: 'var(--blue-soft,#f0f5ff)', opacity: 0.65 });
+        this.main.append(band);
+      }
+      for (const tick of ticks(this.yMin, this.yMax, 5)) {
+        const y = this.y(tick);
+        this.main.append(svg('line', { x1: this.plot.left, x2: this.plot.right, y1: y, y2: y, stroke: 'var(--line,#dfe3ea)', 'stroke-width': tick === 0 ? 1.2 : 0.7, opacity: tick === 0 ? 1 : 0.6 }));
+        this.main.append(svg('text', { x: this.plot.left - 10, y: y + 3.5, 'text-anchor': 'end', fill: 'var(--muted,#667085)', 'font-size': 12 }, (tick > 0 ? '+' : '') + tick.toFixed(Math.abs(tick) % 1 ? 1 : 0)));
+      }
+      for (const bound of this.reference ? [this.reference.lower, this.reference.upper] : []) this.main.append(svg('line', { x1: this.plot.left, x2: this.plot.right, y1: this.y(bound), y2: this.y(bound), stroke: '#9baec8', 'stroke-dasharray': '4 5', 'stroke-width': 1 }));
+      this.main.append(svg('text', { x: this.plot.left, y: 11, fill: 'var(--muted,#667085)', 'font-size': 12 }, 'Portfolio distance · σ'));
+      if (!mobile && this.reference) this.main.append(svg('text', { x: this.plot.right, y: 11, 'text-anchor': 'end', fill: 'var(--muted,#667085)', 'font-size': 12 }, 'Reference band · ' + this.reference.lower + ' to ' + (this.reference.upper > 0 ? '+' : '') + this.reference.upper + 'σ'));
+      const dateCount = mobile ? 3 : width < 850 ? 5 : 6;
+      for (let i = 0; i < dateCount; i++) {
+        const t = this.start + i / (dateCount - 1) * (this.end - this.start);
+        const x = this.x(t);
+        this.main.append(svg('line', { x1: x, x2: x, y1: this.plot.bottom, y2: this.plot.bottom + 4, stroke: 'var(--line,#dfe3ea)' }));
+        this.main.append(svg('text', { x, y: this.plot.bottom + 19, 'text-anchor': i === 0 ? 'start' : i === dateCount - 1 ? 'end' : 'middle', fill: 'var(--muted,#667085)', 'font-size': 12 }, shortDate(t)));
+      }
+      let visible = this.series.filter(p => p.time >= this.start && p.time <= this.end);
+      const before = interpolate(this.series, this.start), after = interpolate(this.series, this.end);
+      if (before && this.start >= this.min && this.start <= this.max) visible.unshift(before);
+      if (after && this.end >= this.min && this.end <= this.max) visible.push(after);
+      const path = visible.map((p, i) => (i ? 'L' : 'M') + this.x(p.time).toFixed(2) + ' ' + this.y(p.value).toFixed(2)).join(' ');
+      this.main.append(svg('path', { d: path, fill: 'none', stroke: 'var(--blue,#315fba)', 'stroke-width': 2.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }));
+      const last = this.series[this.series.length - 1];
+      if (last.time >= this.start && last.time <= this.end) this.main.append(svg('circle', { cx: this.x(last.time), cy: this.y(last.value), r: 4.2, fill: 'var(--blue,#315fba)', stroke: 'var(--paper,#fff)', 'stroke-width': 2 }));
+      this.main.append(svg('rect', { x: this.plot.left, y: this.plot.top, width: this.plot.width, height: this.plot.height, fill: 'transparent', cursor: 'crosshair' }));
+      for (const event of this.events) {
+        if (event.time < this.start || event.time > this.end || event.time < this.min || event.time > this.max) continue;
+        const point = interpolate(this.series, event.time);
+        const group = svg('g', { 'data-event-date': event.date, tabindex: '0', role: 'button', 'aria-label': prettyDate(event.time) + ': ' + event.title, cursor: 'pointer' });
+        group.append(svg('title', {}, event.title));
+        group.append(svg('circle', { cx: this.x(event.time), cy: this.y(point.value), r: 10, fill: 'transparent', 'data-event-date': event.date }));
+        group.append(svg('circle', { cx: this.x(event.time), cy: this.y(point.value), r: 4.5, fill: 'var(--paper,#fff)', stroke: 'var(--blue,#315fba)', 'stroke-width': 2, 'data-event-date': event.date }));
+        group.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.inspect(event.time, true, true); } });
+        this.main.append(group);
+      }
+      this.inspectionLayer = svg('g', { 'pointer-events': 'none', 'aria-hidden': 'true' });
+      this.main.append(this.inspectionLayer);
+      this.renderNavigator();
+      if (!this.selected) {
+        this.inspectInput.value = String(this.series.length - 1);
+        this.inspectOutput.textContent = shortDate(last.time);
+        this.inspectInput.setAttribute('aria-valuetext', prettyDate(last.time) + ', ' + formatValue(last.value));
+      }
+      this.drawInspection();
+    }
+    renderNavigator() {
+      const { left, width } = this.plot;
+      const nx = t => left + (t - this.domainMin) / (this.domainMax - this.domainMin) * width;
+      const ny = v => 37 - (v - this.yMin) / (this.yMax - this.yMin) * 29;
+      this.nav.append(svg('rect', { x: left, y: 5, width, height: 36, rx: 4, fill: 'var(--canvas,#f6f7f9)' }));
+      this.nav.append(svg('path', { d: this.series.map((p, i) => (i ? 'L' : 'M') + nx(p.time).toFixed(2) + ' ' + ny(p.value).toFixed(2)).join(' '), fill: 'none', stroke: '#a4b6ce', 'stroke-width': 1.2 }));
+      const x1 = nx(this.start), x2 = nx(this.end);
+      this.nav.append(svg('rect', { x: x1, y: 5, width: Math.max(1, x2 - x1), height: 36, rx: 4, fill: 'var(--blue,#315fba)', 'fill-opacity': 0.07, stroke: 'var(--blue,#315fba)', 'stroke-opacity': 0.45, cursor: 'grab' }));
+      for (const x of [x1, x2]) {
+        this.nav.append(svg('rect', { x: x - 4, y: 10, width: 8, height: 26, rx: 3, fill: 'var(--paper,#fff)', stroke: 'var(--blue,#315fba)', 'stroke-opacity': 0.65, cursor: 'ew-resize' }));
+        this.nav.append(svg('line', { x1: x, x2: x, y1: 17, y2: 29, stroke: 'var(--blue,#315fba)', 'stroke-width': 1, 'pointer-events': 'none' }));
+      }
+      const a = interpolate(this.series, this.start), b = interpolate(this.series, Math.min(this.end, this.max));
+      this.startInput.value = String(a ? a.index : 0);
+      this.endInput.value = String(b ? b.index : Math.max(0, this.series.length - 1));
+      this.startInput.setAttribute('aria-valuetext', prettyDate(this.start));
+      this.endInput.setAttribute('aria-valuetext', prettyDate(Math.min(this.end, this.max)));
+    }
+    drawInspection() {
+      if (this.inspectionLayer) this.inspectionLayer.replaceChildren();
+      if (!this.selected || !this.inspectionLayer || this.selected.time < this.start || this.selected.time > this.end) { this.tip.style.display = 'none'; return; }
+      const point = this.selected, x = this.x(point.time), y = this.y(point.value);
+      this.inspectionLayer.append(svg('line', { x1: x, x2: x, y1: this.plot.top, y2: this.plot.bottom, stroke: '#6e83a1', 'stroke-dasharray': '3 4', 'stroke-width': 1 }));
+      this.inspectionLayer.append(svg('circle', { cx: x, cy: y, r: 5, fill: 'var(--blue,#315fba)', stroke: 'var(--paper,#fff)', 'stroke-width': 2.5 }));
+      this.tipDate.textContent = prettyDate(point.time) + (this.pinned ? ' · pinned' : '');
+      this.tipValue.textContent = formatValue(point.value);
+      this.tipNote.textContent = (this.options.illustrative ? 'Illustrative history' : 'Spread history') + (point.interpolated ? ' · interpolated' : '') + (this.pinned ? ' · Esc to clear' : ' · click to pin');
+      const event = this.events.find(e => e.date === point.date);
+      this.tipEvent.textContent = event ? event.title : '';
+      this.tipEvent.style.display = event ? 'block' : 'none';
+      this.tip.style.display = 'block';
+      const measuredWidth = this.tip.offsetWidth || 220;
+      const left = x + 16 + measuredWidth <= this.width ? x + 16 : x - measuredWidth - 16;
+      this.tip.style.left = clamp(left, 0, Math.max(0, this.width - measuredWidth)) + 'px';
+      this.tip.style.top = clamp(y - 32, 8, Math.max(8, this.height - (this.tip.offsetHeight || 90) - 22)) + 'px';
+    }
+    destroy() {
+      this.destroyed = true;
+      if (this.frame) cancelAnimationFrame(this.frame);
+      if (this.observer) this.observer.disconnect();
+      for (const dispose of this.disposers) dispose();
+      this.root.remove();
+    }
+  }
+  global.BavellaChartMath = Object.freeze({ DAY, clamp, dateTime, cleanSeries, cleanReference, cleanEvents, interpolate, constrainRange, ticks });
+  global.BavellaChart = BavellaChart;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>(function () {
+  'use strict';
+  // Integration API: window.Bavella.loadReport(reportObject) replaces all report
+  // content and chart data. Read schemaVersion:1 in the embedded JSON for fields.
+  // This UI never derives a position decision, win probability or validity state
+  // from a spread value. Pass engine assessments and point-in-time snapshots.
+  const $ = id => document.getElementById(id);
+  const node = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = String(text); return e; };
+  const text = (id, value) => { $(id).textContent = value == null ? '' : String(value); };
+  const list = v => Array.isArray(v) ? v : [];
+  const finite = n => typeof n === 'number' && Number.isFinite(n);
+  const formatDate = date => { const t = typeof date === 'string' ? Date.parse(date + (date.length === 10 ? 'T00:00:00Z' : '')) : NaN; return Number.isFinite(t) ? new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'short', year:'numeric', timeZone:'UTC'}).format(t) : 'Date not supplied'; };
+  const percent = n => finite(n) ? Math.abs(n).toFixed(2) + '%' : 'Not supplied';
+  let report = null, chart = null, mode = 'position', view = 'brief', selected = null, focusBeforeDialog = null, rangeChoice = 'all';
+  const dialog = $('evidence-dialog');
+
+  function validate(data) {
+    if (!data || typeof data !== 'object' || data.schemaVersion !== 1) throw new Error('The report format is not supported.');
+    if (!data.assets || !data.assets.long || !data.assets.short || typeof data.assets.long.name !== 'string' || typeof data.assets.short.name !== 'string') throw new Error('The report needs both asset names.');
+    if (!data.validity || !data.position) throw new Error('Relationship and position assessments must be supplied separately.');
+    if (!data.chart || !Array.isArray(data.chart.series)) throw new Error('The report needs a chart series, even when it is empty.');
+    return data;
+  }
+  function activeCase() { return mode === 'idea' ? (report.newIdea || {headline:['Review this relationship.','The new opportunity is not assessed.'],summary:'Assess the direction, net payoff and risk before committing capital.',label:'New opportunity not assessed',assessment:'Assess the payoff',tone:'neutral'}) : report.position; }
+  function renderHeadline(id, lines) { const e = $(id); e.replaceChildren(); list(lines).filter(v => typeof v === 'string').slice(0,2).forEach((line,i) => e.append(i ? node('span','',line) : document.createTextNode(line))); if (!e.textContent) e.textContent = 'Assessment not supplied.'; }
+  function applyAssessment() {
+    const c = activeCase();
+    renderHeadline('assessment-title',c.headline); text('assessment-summary',c.summary || 'Supporting context not supplied.');
+    const health=report.validity;
+    text('health-status',(health.label || 'Relationship status not supplied')+' ↗');
+    $('health-status').dataset.tone = health.status === 'VALID' ? 'positive' : health.status === 'BROKEN' || health.status === 'INVALID' ? 'broken' : health.status === 'DEGRADED' ? 'negative' : 'neutral';
+    text('thesis-status',(c.label || 'Position case not supplied')+' ↗'); $('thesis-status').dataset.tone = c.tone || 'neutral';
+    text('stance-label',mode==='idea'?'Next step':c.basis || (report.illustrative?'Supplied assessment':'Current assessment'));
+    text('stance-value',c.assessment || 'Not assessed'); $('stance-value').parentElement.dataset.tone=c.tone || 'neutral';
+    text('economics-state',report.opportunity?.summary || 'Net payoff not assessed');
+    text('explore-basis',mode==='idea'?'Next step':c.basis || (report.illustrative?'Supplied assessment':'Latest assessment'));
+    text('explore-title',list(c.headline).join(' ') || 'Assessment not supplied.');
+    text('explore-stance',c.assessment || 'Not assessed'); text('explore-economics',report.opportunity?.summary || 'Net payoff not assessed');
+    $('explore-stance').style.color=c.tone==='negative'?'var(--red)':'var(--ink)';
+  }
+  function chooseDrivers() {
+    const groups=new Set(); return list(report.drivers).filter(d=>d&&d.available!==false&&typeof d.title==='string').sort((a,b)=>(b.material===true?1:0)-(a.material===true?1:0)||(Number(b.priority)||0)-(Number(a.priority)||0)).filter(d=>{const g=d.group || d.id;if(g&&groups.has(g))return false;if(g)groups.add(g);return true;}).slice(0,3);
+  }
+  function renderDrivers() {
+    const drivers=chooseDrivers(); $('drivers').replaceChildren(); text('driver-count',drivers.length?String(drivers.length)+' findings':'');
+    if(!drivers.length){$('drivers').append(node('p','empty-copy','Supporting findings have not been supplied.'));return;}
+    drivers.forEach(d=>{const b=node('button','driver');b.type='button';b.dataset.tone=d.tone||'neutral';b.append(node('span','driver-role',d.role||'Evidence'),node('strong','',d.title));if(d.detail)b.append(node('span','driver-detail',d.detail));b.append(node('span','driver-link',(d.link||'Open the evidence')+' →'));b.addEventListener('click',()=>openEvidence(d.topic||'all',b,d));$('drivers').append(b);});
+  }
+  function renderConditions() {
+    $('conditions').replaceChildren();
+    const conditions=list(report.conditions).filter(c=>c&&typeof c.title==='string');
+    conditions.forEach(c=>{const li=node('li'),b=node('button','',c.title);b.type='button';if(c.detail)b.append(node('small','',c.detail));b.addEventListener('click',()=>openEvidence(c.topic||'review',b));li.append(b);$('conditions').append(li);});
+    if(!conditions.length)$('conditions').append(node('p','empty-copy','Reassessment conditions have not been supplied.'));
+    const next=report.nextReview; $('catalyst').hidden=!next?.title;
+    if(next?.title){text('catalyst-title',next.title);text('catalyst-date',next.dateVerified&&next.date?formatDate(next.date):(next.detail||'Date awaiting confirmation'));}
+  }
+  function riskContext() {
+    const r=report.risk||{};
+    const moneyReady=finite(r.horizonDays)&&r.horizonDays>0&&r.basisConfirmed===true&&typeof r.basis==='string'&&r.basis.length>0&&finite(r.positionAmount)&&r.positionAmount>0&&typeof r.currency==='string'&&/^[A-Z]{3}$/.test(r.currency);
+    let formatter=null; if(moneyReady){try{formatter=new Intl.NumberFormat('en-GB',{style:'currency',currency:r.currency,maximumFractionDigits:0});}catch(_){}}
+    return {r,moneyReady:!!formatter,money:n=>formatter?formatter.format(r.positionAmount*Math.abs(n)/100):'Not available'};
+  }
+  function renderRisk() {
+    const {r,moneyReady,money}=riskContext(); $('risk-values').replaceChildren();
+    const horizon=finite(r.horizonDays)&&r.horizonDays>0?r.horizonDays:null;
+    text('risk-title',moneyReady?'Downside for this position':'Position context needed');
+    text('risk-summary',moneyReady?(horizon===1?'One-day':horizon?String(horizon)+'-day':'Horizon not supplied')+' model estimates, based on '+r.basis+'.':'Confirm the exposure basis and position size to express the source estimates as your potential loss.');
+    if(moneyReady&&finite(r.var95Percent)){const row=node('div','risk-row');row.append(node('span','',moneyReady?'95% loss threshold':'Reference loss threshold'),node('strong','',moneyReady?money(r.var95Percent):percent(r.var95Percent)));$('risk-values').append(row);}
+    if(moneyReady&&finite(r.expectedShortfall95Percent)){const row=node('div','risk-row');row.append(node('span','',moneyReady?'Average beyond threshold':'Average beyond threshold'),node('strong','',moneyReady?money(r.expectedShortfall95Percent):percent(r.expectedShortfall95Percent)));$('risk-values').append(row);}
+    $('risk-values').append(node('span','reference-tag',!moneyReady?'Source estimates available in risk details.':horizon?(horizon===1?'One-day estimates':'Estimates over '+horizon+' days')+' · losses can be larger':'Risk horizon not supplied'));
+  }
+  function updateSelection(point) {
+    selected=point; const show=view==='explore'||!!point?.pinned; $('selection-context').hidden=!show;
+    if(!point){text('selected-label','Date inspection');text('selected-date','Select a date');text('selected-value','');text('selected-context','Inspect the portfolio path and any dated evidence while keeping the latest assessment in view.');$('selected-evidence').hidden=true;return;}
+    text('selected-label',point.pinned?'Selected date':'Inspecting date'); text('selected-date',formatDate(point.date));text('selected-value',finite(point.value)?(point.value<0?'−':'+')+Math.abs(point.value).toFixed(2)+'σ':'');
+    const snapshot=list(report.chart.snapshots).find(s=>s&&s.date===point.date);
+    let context;
+    if(point.event){context=point.event.summary || point.event.title;}
+    else if(snapshot){context=snapshot.summary || 'A dated diagnostic snapshot is available.';}
+    else{context=report.chart.illustrative?'Illustrative curve. Historical assessments are not supplied.':'No diagnostic snapshot is available for this date.';}
+    if(point.interpolated)context='Interpolated chart reading. '+context;
+    text('selected-context',context); $('selected-evidence').hidden=!(point.event||snapshot);
+  }
+  function switchView(nextView) {
+    if(!report)return;view=nextView==='explore'?'explore':'brief'; $('report-view').dataset.layout=view;
+    document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===view)));
+    $('report-view').setAttribute('aria-labelledby',view==='brief'?'brief-tab':'explore-tab');
+    $('explore-assessment').hidden=view!=='explore';$('explore-next').hidden=view!=='explore';
+    text('chart-title',view==='explore'?'Explore the relationship':report.chart.title || 'How unusual is the gap?');
+    updateSelection(selected);
+  }
+  function section(title) { const e=node('section','evidence-block');e.append(node('h3','',title));return e; }
+  function paragraphs(block,values){list(values).filter(v=>v!=null&&String(v).length).forEach(v=>block.append(node('p','',v)));return block;}
+  function definitions(block,rows){const dl=node('dl','evidence-definition');rows.forEach(([label,value])=>{const row=node('div');row.append(node('dt','',label),node('dd','',value==null?'Not supplied':value));dl.append(row);});block.append(dl);return block;}
+  function bullets(block,values){const ul=node('ul');list(values).forEach(v=>ul.append(node('li','',typeof v==='string'?v:v.summary||v.title||'Evidence supplied')));block.append(ul);return block;}
+  function addSources(parent) {
+    const s=section('Sources and time context');
+    if(!list(report.sources).length)s.append(node('p','','No sources supplied.'));
+    list(report.sources).forEach(source=>{const p=node('div','source-note');p.append(node('strong','',source.label||'Source'),node('div','',source.date?formatDate(source.date):'Date not supplied'));if(source.detail)p.append(node('div','',source.detail));s.append(p);});
+    parent.append(s);
+  }
+  function addRobustness(parent){const r=report.robustness||{};const s=section('Does the conclusion survive scrutiny?');[['Competing explanations',r.competingExplanations],['Counterfactual checks',r.counterfactuals],['Assumptions and dependencies',r.dependencies]].forEach(([title,items])=>{const d=node('details'),summary=node('summary','',title);d.append(summary);if(list(items).length)bullets(d,items);else d.append(node('p','','Detailed results not supplied.'));s.append(d);});const trust=r.trustAdjustment;paragraphs(s,[trust&&typeof trust==='object'?(trust.reason||'A trust adjustment is present; its explanation is not supplied.'):'Trust adjustment: not supplied.']);parent.append(s);}
+  function addSignals(parent){const s=section('Full signal review');list(report.signals).forEach(signal=>{const row=node('div','signal-row');row.append(node('strong','',signal.question||signal.name||signal.id||'Signal'),node('p','',signal.available===true?(signal.summary||signal.state||'Detail not supplied'):(signal.missingLabel||'Detailed reading not supplied')),node('small','',[signal.id,signal.name].filter(Boolean).join(' · ')));s.append(row);});if(!list(report.signals).length)s.append(node('p','','Individual signal readings have not been supplied.'));parent.append(s);}
+  function addStructure(parent){const s=section('Relationship diagnostics');definitions(s,[['Relationship state',report.validity.status||'Not supplied'],['Validity score',finite(report.validity.score)?report.validity.score+' / 100':'Not supplied'],...list(report.validity.tests).map(t=>[t.label,t.value])]);paragraphs(s,['The validity score measures the supplied relationship assessment. It is not a probability of profit. A spread inside its reference band does not establish validity.']);parent.append(s);}
+  function addRisk(parent){const {r,moneyReady,money}=riskContext();const s=section('Risk reference');definitions(s,[['Estimate horizon',finite(r.horizonDays)?r.horizonDays+' day(s)':'Not supplied'],['95% loss threshold (VaR)',percent(r.var95Percent)],['Average loss beyond threshold',percent(r.expectedShortfall95Percent)],['Historical maximum drawdown',percent(r.maxDrawdownPercent)],['Position basis',r.basisConfirmed?r.basis:'Not confirmed'],['Your 95% loss threshold',moneyReady&&finite(r.var95Percent)?money(r.var95Percent):'Position context needed']]);paragraphs(s,['A 95% loss threshold is exceeded in approximately 5% of outcomes under the model. It is not a maximum possible loss. Expected shortfall is the average loss beyond that threshold.','Historical drawdown describes the supplied sample; it is not a forecast or a risk limit.',r.summary]);parent.append(s);}
+
+  function renderResearchAccess(){
+    let area=document.getElementById('research-access');
+    if(!area){area=node('div','research-access');area.id='research-access';document.querySelector('.reassessment').append(area);}
+    area.replaceChildren();
+    [['trade','Trade research','thesis'],['fundamentals','Fundamental research','fundamentals']].forEach(([key,label,topic])=>{if(report.research?.[key]){const b=node('button','text-button',label+' ↗');b.type='button';b.addEventListener('click',()=>openEvidence(topic,b));area.append(b);}});
+  }
+  function appendResearch(parent,topic){
+    const keys=topic==='fundamentals'?['fundamentals']:topic==='thesis'?['trade']:topic==='all'?['trade','fundamentals']:[];
+    keys.forEach(key=>{if(report.research?.[key]){const s=section(key==='trade'?'Trade research':'Fundamental research');if(key==='fundamentals')s.append(node('p','','Fundamentals were retrieved during the analysis request; they are not reconstructed to a historical price cutoff. Review the source dates in the research.'));s.append(node('div','research-copy',report.research[key]));parent.append(s);}});
+    if(topic==='fundamentals'&&report.research?.metrics&&Object.keys(report.research.metrics).length){const s=section('Underlying fundamental data');const d=node('details');d.append(node('summary','','Metrics and data warnings'),node('pre','raw-evidence',JSON.stringify(report.research.metrics,null,2)));s.append(d);parent.append(s);}
+    if(topic==='all'||topic==='coverage'||topic==='structure'||topic==='timing'){const s=section('Detailed engine evidence');const d=node('details');d.append(node('summary','','Open calculations and diagnostic output'),node('pre','raw-evidence',JSON.stringify(report.diagnostics||{},null,2)));s.append(d);parent.append(s);}
+    if(topic==='all'||topic==='chart'||topic==='risk'){list(report.referenceCharts).forEach(c=>{if(typeof c.base64!=='string'||!/^[A-Za-z0-9+/=\s]+$/.test(c.base64))return;const s=section(c.title||'Reference chart'),d=node('details');d.append(node('summary','','Open reference chart'));const img=node('img','evidence-image');img.alt=c.title||'Reference chart';img.src='data:image/png;base64,'+c.base64;d.append(img);s.append(d);parent.append(s);});}
+  }
+
+  function openEvidence(topic,trigger,driver){
+    if(!report)return;focusBeforeDialog=trigger||document.activeElement;
+    const parent=$('evidence-content');parent.replaceChildren();let title='',summary='';
+    if(topic==='structure') {title='Does the relationship still hold?';summary=report.validity.summary||'Relationship context not supplied.';addStructure(parent);addSignals(parent);}
+    else if(topic==='fundamentals'){title='Which company has the stronger case?';const d=driver||list(report.drivers).find(x=>x.topic==='fundamentals');summary=d?.explanation||'Fundamental evidence is not supplied for this relationship.';const s=section('What it means for the position');paragraphs(s,[d?.detail,'Assess the relative business case in the direction of the selected long and short legs. Fundamental comparisons are shown only when supplied for the relevant asset types.']);parent.append(s);}
+    else if(topic==='timing'){title='Is the timing still supportive?';const d=driver||list(report.drivers).find(x=>x.topic==='timing');summary=d?.explanation||'Timing evidence is not supplied.';const s=section('Market backdrop');definitions(s,[['Reported regime',report.regime?.available?report.regime.label:'Not supplied']]);paragraphs(s,[report.regime?.summary]);parent.append(s);}
+    else if(topic==='thesis'){title=mode==='idea'?'Is there a new investment opportunity?':'Why this view on the position?';summary=mode==='idea'?(report.opportunity?.detail||'The new opportunity is not assessed.'):(report.position.summary||'The position case has not been supplied.');const s=section('Position and opportunity are separate');definitions(s,[['Selected direction','Long '+report.assets.long.ticker+' / short '+report.assets.short.ticker],['Position assessment',mode==='position'?report.position.assessment:'New idea'],['Net payoff',report.opportunity?.assessed?'Assessed':'Not assessed']]);paragraphs(s,[report.opportunity?.detail,report.illustrative?'The assessment is retained from the supplied example. This interface has not recalculated an investment recommendation.':null]);parent.append(s);addRobustness(parent);}
+    else if(topic==='review'){title='What would change the view?';summary='Reassess the evidence that supports the position, the evidence against it, and the payoff after costs.';const s=section('Reassessment conditions');list(report.conditions).forEach(c=>{const row=node('div','signal-row');row.append(node('strong','',c.title||'Review condition'));if(c.detail)row.append(node('p','',c.detail));s.append(row);});paragraphs(s,['These conditions guide a review. They do not execute trades or replace portfolio risk limits.']);parent.append(s);if(report.nextReview?.title){const c=section('Next decision event');definitions(c,[['Event',report.nextReview.title],['Confirmed date',report.nextReview.dateVerified&&report.nextReview.date?formatDate(report.nextReview.date):'Awaiting confirmation']]);parent.append(c);}}
+    else if(topic==='risk'){title='What could the position lose?';summary='Read the loss estimates in the context of the position, its horizon and the assumptions behind the model.';addRisk(parent);}
+    else if(topic==='chart'){title='How to read the relationship chart';summary='The chart shows how the cumulative portfolio path moves relative to its rolling reference. It helps explain the move; the diagnostics and investment case determine how to interpret it.';const s=section('Chart and interpretation');paragraphs(s,[report.chart.definition,'Drag the shaded window or its edges below the chart to change the visible dates. Drag the main plot to pan, or use the zoom buttons. Hover to inspect a reading; click to pin it. The date sliders provide keyboard controls.','Changing the visible dates does not change the model’s calibration window or the latest assessment. Historical explanations appear only when dated evidence has been supplied.',report.chart.illustrative?'The current example uses a schematic curve, ending at the supplied −1.21σ reading. Earlier values are illustrative.':null]);parent.append(s);}
+    else if(topic==='selected'){title=selected?.event?.title||'Evidence for the selected date';const snapshot=list(report.chart.snapshots).find(s=>s.date===selected?.date);summary=selected?.event?.summary||snapshot?.summary||'No dated evidence is available.';const s=section('Point-in-time context');definitions(s,[['Selected date',selected?.date?formatDate(selected.date):'Not selected'],['Reading',finite(selected?.value)?selected.value.toFixed(2)+'σ':'Not available'],['Relationship state at this date',snapshot?.validityState||'Not supplied']]);paragraphs(s,['This historical context is separate from the latest assessment.']);parent.append(s);}
+    else if(topic==='coverage'){title='Data coverage and sources';summary='Check what supports this report and which inputs are still missing.';const s=section('Available evidence');bullets(s,report.coverage);parent.append(s);}
+    else {title='Evidence and methodology';summary='Start with the finding that matters to you. The detailed signals, assumptions and sources sit behind the decision brief.';const s=section('Findings behind the view');list(report.drivers).forEach(d=>{const row=node('details'),head=node('summary','',d.title||'Finding');row.append(head,node('p','',d.explanation||d.detail||'No detailed explanation supplied.'));s.append(row);});parent.append(s);addStructure(parent);addSignals(parent);addRobustness(parent);addRisk(parent);}
+    appendResearch(parent,topic);text('evidence-title',title);text('evidence-summary',summary);text('evidence-asof','Report as of '+formatDate(report.asOf));addSources(parent);
+    if(!dialog.open)dialog.showModal();$('close-evidence').focus();dialog.querySelector('.drawer-body').scrollTop=0;
+  }
+  function loadReport(value) {
+    let next;try{next=validate(value);}catch(error){text('load-error',error.message+' The previous report, if any, remains visible.');$('load-error').hidden=false;return {ok:false,error:error.message};}
+    if(dialog.open)dialog.close();if(chart){chart.destroy();chart=null;}$('chart-host').replaceChildren();report=next;selected=null;rangeChoice='all';$('load-error').hidden=true;
+    text('sector',report.sector||'Relationship review');text('long-name',report.assets.long.name);text('short-name',report.assets.short.name);text('long-label','Long '+(report.assets.long.ticker||report.assets.long.name));text('short-label','Short '+(report.assets.short.ticker||report.assets.short.name));text('data-date',report.hasDates===false?'Sequential observations':'As of '+formatDate(report.asOf));$('example-tag').hidden=!report.illustrative;
+    document.title='Bavella — '+(report.portfolioName||report.assets.long.name+' / '+report.assets.short.name);$('long-name').hidden=report.hasLong===false;$('short-name').hidden=report.hasShort===false;$('long-label').hidden=report.hasLong===false;$('short-label').hidden=report.hasShort===false;document.querySelector('.pair-divider').hidden=report.hasLong===false||report.hasShort===false;document.querySelector('.position-separator').hidden=report.hasLong===false||report.hasShort===false;
+    text('chart-description',report.chart.description||'Spread relative to its reference level');text('series-label',report.chart.label||'Spread');const hasReference=finite(report.chart.reference?.lower)&&finite(report.chart.reference?.upper)&&report.chart.reference.lower<report.chart.reference.upper;document.querySelector('.band-key').hidden=!hasReference;document.querySelector('.band-key').nextElementSibling.hidden=!hasReference;text('chart-origin',(report.chart.illustrative?'Illustrative history · ':'')+(hasReference?'Reference band, not a trading rule':'Reference range not supplied'));
+    text('footer-source',report.hasDates===false?'Analysis of sequential observations':(report.illustrative?'Example report · ':'')+'Assessment as of '+formatDate(report.asOf));
+    applyAssessment();renderDrivers();renderConditions();renderRisk();renderResearchAccess();
+    chart=new window.BavellaChart($('chart-host'),{series:report.chart.series,events:list(report.chart.events),reference:report.chart.reference,illustrative:!!report.chart.illustrative,onSelect:updateSelection,onRange:()=>{document.querySelectorAll('[data-range]').forEach(b=>b.setAttribute('aria-pressed','false'));rangeChoice=null;}});
+    document.querySelectorAll('[data-range]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.range==='all')));rangeChoice='all';
+    ['zoom-in','zoom-out','chart-reset'].forEach(id=>$(id).disabled=window.BavellaChartMath.cleanSeries(report.chart.series).length<2);
+    document.querySelectorAll('[data-range]').forEach(b=>b.disabled=window.BavellaChartMath.cleanSeries(report.chart.series).length<2);
+    switchView(view);return {ok:true};
+  }
+  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+  document.querySelectorAll('[data-topic]').forEach(b=>b.addEventListener('click',()=>openEvidence(b.dataset.topic,b)));
+  document.querySelectorAll('[data-range]').forEach(b=>b.addEventListener('click',()=>{chart.setRange(b.dataset.range);rangeChoice=b.dataset.range;document.querySelectorAll('[data-range]').forEach(other=>other.setAttribute('aria-pressed',String(other===b)));}));
+  $('zoom-in').addEventListener('click',()=>chart?.zoom(1.6));$('zoom-out').addEventListener('click',()=>chart?.zoom(1/1.6));$('chart-reset').addEventListener('click',()=>{chart?.reset();document.querySelectorAll('[data-range]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.range==='all')));rangeChoice='all';updateSelection(null);});
+  $('review-mode').addEventListener('change',()=>{mode=$('review-mode').value;applyAssessment();});
+  $('selected-evidence').addEventListener('click',()=>openEvidence('selected',$('selected-evidence')));
+  $('close-evidence').addEventListener('click',()=>dialog.close());$('close-evidence-bottom').addEventListener('click',()=>dialog.close());
+  dialog.addEventListener('click',e=>{if(e.target!==dialog)return;const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();});
+  dialog.addEventListener('close',()=>{if(focusBeforeDialog?.isConnected)focusBeforeDialog.focus({preventScroll:true});});
+  document.querySelector('.view-tabs').addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();switchView(view==='brief'?'explore':'brief');$(view==='brief'?'brief-tab':'explore-tab').focus();}});
+  window.Bavella={schemaVersion:1,loadReport,getReport:()=>JSON.parse(JSON.stringify(report)),setView:switchView};
+  try{loadReport(JSON.parse($('bavella-report').textContent));}catch(error){text('load-error','The report could not be opened. '+error.message);$('load-error').hidden=false;}
+})();
+</script>
+</body>
+</html>
