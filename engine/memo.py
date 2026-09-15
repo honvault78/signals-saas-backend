@@ -946,6 +946,53 @@ def _build_fundamental_comparison(fundamental_data: dict) -> str:
     return "\n".join(lines)
 
 
+def compute_fundamental_stance(fundamental_data: dict, long_positions: dict, short_positions: dict) -> dict:
+    """Direction-blind fundamental stance from the metrics scorecard.
+
+    Each dimension is scored ticker-vs-ticker with a dead band so near-ties count for nobody.
+    The winner is then mapped onto the position: winner == long leg → 'for', winner == short
+    leg → 'against', no clear winner → 'neutral'. Swapping the legs flips the stance and nothing
+    else, which is the property the LLM narrative could not guarantee.
+    """
+    longs, shorts = list(long_positions or {}), list(short_positions or {})
+    if len(longs) != 1 or len(shorts) != 1:
+        return {'state': 'unknown', 'conviction': None, 'winner': None, 'wins': {}, 'dimensions': [], 'source': 'scorecard'}
+    tl, ts = longs[0], shorts[0]
+    ml = (fundamental_data or {}).get(tl, {}).get('metrics', {}) or {}
+    ms = (fundamental_data or {}).get(ts, {}).get('metrics', {}) or {}
+    def num(m, k):
+        v = m.get(k)
+        try: return float(v) if v is not None else None
+        except (TypeError, ValueError): return None
+    wins, dims = {tl: 0, ts: 0}, []
+    def score(label, a, b, higher_is_better, band, fmt='{:.2f}'):
+        if a is None or b is None: return
+        if higher_is_better and (a <= 0 or b <= 0) and label == 'Valuation': return
+        gap = a - b
+        if abs(gap) <= band: dims.append(f"{label}: tie ({fmt.format(a)} vs {fmt.format(b)})"); return
+        winner = tl if (gap > 0) == higher_is_better else ts
+        wins[winner] += 1
+        dims.append(f"{label}: {winner} ({fmt.format(a)} vs {fmt.format(b)})")
+    pel, pes = (num(ml, 'forwardPE') or num(ml, 'trailingPE')), (num(ms, 'forwardPE') or num(ms, 'trailingPE'))
+    if pel and pes and pel > 0 and pes > 0:
+        score('Valuation', pel, pes, False, 0.10 * max(pel, pes), '{:.1f}x')
+    score('Profitability', num(ml, 'operatingMargins'), num(ms, 'operatingMargins'), True, 0.02, '{:.1%}')
+    score('Growth', num(ml, 'revenueGrowth'), num(ms, 'revenueGrowth'), True, 0.03, '{:.1%}')
+    score('Balance sheet', num(ml, 'debtToEquity'), num(ms, 'debtToEquity'), False, 15.0, '{:.0f}')
+    score('Analyst sentiment', num(ml, 'recommendationMean'), num(ms, 'recommendationMean'), False, 0.15, '{:.2f}')
+    score('Momentum', num(ml, 'fiftyTwoWeekChange'), num(ms, 'fiftyTwoWeekChange'), True, 0.05, '{:+.1%}')
+    score('Cash generation', num(ml, 'freeCashflowYield'), num(ms, 'freeCashflowYield'), True, 0.01, '{:.1%}')
+    n = len([d for d in dims])
+    margin = wins[tl] - wins[ts]
+    if n < 4 or abs(margin) <= 1:
+        state, conviction, winner = 'neutral', 'LOW', None
+    else:
+        winner = tl if margin > 0 else ts
+        state = 'for' if winner == tl else 'against'
+        conviction = 'HIGH' if abs(margin) >= 4 else 'MEDIUM' if abs(margin) >= 2 else 'LOW'
+    return {'state': state, 'conviction': conviction, 'winner': winner, 'wins': wins, 'dimensions': dims, 'source': 'scorecard'}
+
+
 def _build_comparative_scorecard(fundamental_data: dict, tickers: list) -> str:
     """Build a pre-computed scorecard: which stock wins on each dimension and why.
     
@@ -2118,6 +2165,7 @@ def build_decision_brief_prompt(
     deterministic_decision: Optional[Dict[str, Any]] = None,
     is_equity_pair: bool = True,
     position_gross_exposure: Optional[float] = None,
+    fundamental_stance: Optional[Dict[str, Any]] = None,
 ) -> str:
     from datetime import date as _date
     today_str = _date.today().strftime("%Y-%m-%d")
@@ -2478,6 +2526,18 @@ After the dimensional analysis:
 DATA QUALITY: If any metric was flagged as distorted, DO NOT use it. Say why.
 If no fundamental data provided, use your knowledge but flag uncertainty."""
 
+    if fundamental_stance and fundamental_stance.get('state') in ('for', 'neutral', 'against'):
+        _lock = {'for': 'SUPPORTS', 'neutral': 'NEUTRAL', 'against': 'IN TENSION'}[fundamental_stance['state']]
+        _dims = '; '.join(fundamental_stance.get('dimensions') or [])
+        stance_block = (f"The stance is LOCKED by the metrics scorecard (direction-blind, computed before you were called). Write this line exactly:\n"
+                        f"FUNDAMENTAL STANCE: {_lock} — CONVICTION: {fundamental_stance.get('conviction') or 'LOW'}\n"
+                        f"Scorecard: {_dims}\n"
+                        f"You may add that qualitative evidence (earnings reaction, guidance, analyst actions) leans the other way, but you may not change the line.")
+    else:
+        stance_block = ("State, in exactly this format on its own line:\n"
+                        "FUNDAMENTAL STANCE: [SUPPORTS | NEUTRAL | IN TENSION] — CONVICTION: [LOW | MEDIUM | HIGH]\n"
+                        "SUPPORTS = the metrics favour the long leg over the short leg. IN TENSION = they favour the short leg. NEUTRAL = no clear edge (a one-dimension margin is NEUTRAL).\n"
+                        "Judge the companies as A versus B on the scorecard first; only then map the winner onto the legs.")
     # ── WHAT WOULD CHANGE — two completely separate templates by asset class ──
     if is_equity_pair:
         what_would_change_block = """### WHAT WOULD CHANGE THIS VIEW
@@ -2566,12 +2626,8 @@ during adverse windows, taking monthly risk from $46k to ~$60k." Do NOT just say
 could be amplified" — estimate by how much and explain the mechanism.
 
 ### FUNDAMENTAL STANCE (mandatory — visible on the front page)
-State, in exactly this format on its own line:
-FUNDAMENTAL STANCE: [SUPPORTS | NEUTRAL | IN TENSION] — CONVICTION: [LOW | MEDIUM | HIGH]
-Then one or two sentences: which leg the fundamental evidence favours and why, citing numbers.
-SUPPORTS = the evidence favours the position as held (long leg stronger than short leg).
-IN TENSION = the evidence favours the short leg, or argues against the long leg.
-NEUTRAL = no fundamental edge either way.
+{stance_block}
+Then one or two sentences explaining the stance from the scorecard dimensions, citing numbers.
 Do not write a recommendation. Do not mention position size. The engine decision above is final.
 
 ### UPCOMING CATALYSTS (if Claude FS research is available — 3-5 bullets)
@@ -2735,6 +2791,9 @@ yet both stocks moved in unexpected directions, suggesting sentiment dominates"
 NOT the generic example above — write what the data actually shows]
 VERDICT: "Fundamentals favor [LONG ticker / SHORT ticker / NEITHER] — [one sentence
 citing a specific number or event from sources A or B that drives this view]."
+The verdict must agree with the FUNDAMENTAL STANCE line in TRADE ANALYSIS (SUPPORTS → the long
+ticker, IN TENSION → the short ticker, NEUTRAL → NEITHER). If live research leans the other way,
+say so in the sentence as "qualitative evidence leans to X", but keep the verdict consistent.
 KEY RISK: [One specific development with a name, date, or threshold that would flip
 this verdict — must include company name + date + specific metric]
 
@@ -2938,6 +2997,7 @@ async def generate_memo(
     deterministic_decision: Optional[Dict[str, Any]] = None,
     is_equity_pair: bool = True,
     position_gross_exposure: Optional[float] = None,
+    fundamental_stance: Optional[Dict[str, Any]] = None,
 ) -> str:
     if api_key is None:
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -2963,6 +3023,7 @@ async def generate_memo(
             deterministic_decision=deterministic_decision,
             is_equity_pair=is_equity_pair,
             position_gross_exposure=position_gross_exposure,
+            fundamental_stance=fundamental_stance,
         )
         logger.info(f"Generating decision brief via {model}...")
         logger.info(f"GPT prompt: {len(prompt)} chars, FA section present: {'FUNDAMENTAL ANALYSIS' in prompt}, Claude FS data: {bool(claude_fs_analysis)}")

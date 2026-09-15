@@ -204,6 +204,7 @@ def generate_html_report(
     chart_z_score=None, chart_cumulative=None, chart_regime_history=None, chart_window: int = 60,
     as_of_date=None, position_gross_exposure=None, fundamental_data=None,
     is_equity_pair: bool = False, analysis_has_dates: bool = True, risk_horizon_days: Optional[int] = 1,
+    fundamental_stance: Optional[Dict[str, Any]] = None,
 ) -> str:
     stats, regime, raw = enhanced_stats or {}, regime_summary or {}, validity_data or {}
     v, details, attr, engine = raw.get('validity', raw) or {}, raw.get('details', {}) or {}, raw.get('attribution', {}) or {}, raw.get('engine', {}) or {}
@@ -243,7 +244,7 @@ def generate_html_report(
     if sensitive: driver('robustness', 'robustness', 110, 'all', 'negative', 'Evidence sensitivity', 'An alternative check changes the conclusion.', sensitive[0].get('result') or sensitive[0].get('test'), material=True)
     if engine.get('path') in ('fallback_heuristic', 'error'): driver('coverage', 'coverage', 120, 'coverage', 'negative', 'Analysis limitation', 'The full validity analysis was unavailable.', 'This report uses a fallback or incomplete diagnosis.', material=True)
     fund_text = _plain(claude_fs_html) if is_equity_pair else ''
-    stance = _stance(memo_text, fund_text, is_equity_pair)
+    stance = (dict(fundamental_stance) if isinstance(fundamental_stance, dict) and fundamental_stance.get('state') in ('for', 'neutral', 'against') else _stance(memo_text, fund_text, is_equity_pair))
     if fund_text or (is_equity_pair and funds):
         _ft = {'for':('positive','Fundamentals support the position.'), 'against':('negative','Fundamentals lean against the position.'), 'neutral':('neutral','Fundamentals give no edge either way.')}.get(stance['state'], ('neutral','Review the relative business case.'))
         driver('fundamentals', 'fundamentals', 70 if stance['state'] != 'against' else 100, 'fundamentals', _ft[0], 'Business case', _ft[1], ('Conviction ' + stance['conviction'].lower() + '. ' if stance.get('conviction') else '') + 'Earnings, valuation and analyst evidence are in the research.', 'The fundamental stance is combined with the engine view to produce the decision; it does not replace it.')
@@ -268,6 +269,8 @@ def generate_html_report(
     adf_p = _num(regime.get('adf_pvalue'))
     total_ret, max_dd = _num(stats.get('total_return')), _num(stats.get('max_drawdown'))
     dd_pct = abs(max_dd) * 100 if max_dd is not None else None
+    n_days = _num(stats.get('n_trading_days')) or (len(chart_cumulative) if chart_cumulative is not None and hasattr(chart_cumulative, '__len__') else None)
+    window = f'over the last {int(n_days)} trading days' if n_days else 'over the sample'
     ret_pct = total_ret * 100 if total_ret is not None else None
     if adf_p is not None and adf_p > 0.8:
         stats_in = {'state':'against', 'label':'Not supportive', 'tone':'negative', 'detail':'The spread is trending rather than reverting; the statistical case for a bounce is not there.'}
@@ -281,18 +284,21 @@ def generate_html_report(
         stats_in = {'state':'neutral', 'label':'Neutral', 'tone':'neutral', 'detail':f'The spread sits near its reference ({z_last:+.1f}σ); no statistical pull either way.'}
     _conv = (' (conviction ' + stance['conviction'].lower() + ')') if stance.get('conviction') else ''
     fund_in = {'n/a':{'state':'n/a','label':'Not applicable','tone':'neutral','detail':'Fundamental research is only run for equity pairs.'},
-               'for':{'state':'for','label':'Supportive'+_conv,'tone':'positive','detail':'The research favours the long leg over the short leg.'},
-               'against':{'state':'against','label':'Against'+_conv,'tone':'negative','detail':'The research favours the short leg, arguing against the position as held.'},
-               'neutral':{'state':'neutral','label':'Neutral'+_conv,'tone':'neutral','detail':'The research gives no fundamental edge either way.'},
+               'for':{'state':'for','label':'Supportive'+_conv,'tone':'positive','detail':'The metrics favour the long leg over the short leg.'},
+               'against':{'state':'against','label':'Against'+_conv,'tone':'negative','detail':'The metrics favour the short leg, arguing against the position as held.'},
+               'neutral':{'state':'neutral','label':'Neutral'+_conv,'tone':'neutral','detail':'The metrics give no clear edge either way.'},
                'unknown':{'state':'unknown','label':'Not assessed','tone':'neutral','detail':'No fundamental stance could be read from the research.'}}[stance['state']]
+    if stance.get('wins') and stance.get('source') == 'scorecard':
+        _w = stance['wins']; _n = len(stance.get('dimensions') or [])
+        fund_in['detail'] += f" Scorecard: {' vs '.join(f'{t} {w}' for t, w in _w.items())} of {_n} dimensions."
     if dd_pct is None and ret_pct is None:
         risk_in = {'state':'unknown', 'label':'Not assessed', 'tone':'neutral', 'detail':'Realised return and drawdown were not supplied.'}
     elif (dd_pct or 0) >= 15 or (ret_pct is not None and ret_pct <= -10):
-        risk_in = {'state':'stretched', 'label':'Stretched', 'tone':'negative', 'detail':f'The trade is {ret_pct:+.0f}% over the sample with a {dd_pct:.0f}% peak-to-trough drawdown; a healthy relationship can still be an expensive position.'}
+        risk_in = {'state':'stretched', 'label':'Stretched', 'tone':'negative', 'detail':f'If held through the last {int(n_days) if n_days else ""} trading days: {ret_pct:+.0f}%, with a {dd_pct:.0f}% drawdown along the way. A healthy relationship can still be an expensive position.'}
     elif (dd_pct or 0) >= 8:
-        risk_in = {'state':'elevated', 'label':'Elevated', 'tone':'neutral', 'detail':f'{ret_pct:+.0f}% over the sample, {dd_pct:.0f}% maximum drawdown.'}
+        risk_in = {'state':'elevated', 'label':'Elevated', 'tone':'neutral', 'detail':f'If held {window}: {ret_pct:+.0f}%, {dd_pct:.0f}% maximum drawdown.'}
     else:
-        risk_in = {'state':'contained', 'label':'Contained', 'tone':'positive', 'detail':f'{ret_pct:+.0f}% over the sample, {dd_pct:.0f}% maximum drawdown.'}
+        risk_in = {'state':'contained', 'label':'Contained', 'tone':'positive', 'detail':f'If held {window}: {ret_pct:+.0f}%, {dd_pct:.0f}% maximum drawdown.'}
     health_in = {'VALID':{'state':'strong','label':'Healthy','tone':'positive','detail':'The pair is behaving as it has historically.'},
                  'DEGRADED':{'state':'strained','label':'Under strain','tone':'negative','detail':'Diagnostics show the relationship weakening.'},
                  'BROKEN':{'state':'broken','label':'Broken','tone':'broken','detail':'The relationship has stopped behaving as expected.'},
@@ -304,7 +310,15 @@ def generate_html_report(
     inputs = [dict(key='health', name='Relationship', topic='structure', **health_in),
               dict(key='statistics', name='Statistics', topic='chart', **stats_in),
               dict(key='fundamentals', name='Fundamentals', topic='fundamentals', **fund_in),
-              dict(key='risk', name='Realised risk', topic='risk', **risk_in)]
+              dict(key='risk', name='If held', topic='risk', **risk_in)]
+    # New-idea mode: no P&L exists yet, so the fourth input is forward downside, informational only.
+    var_pct, vol = risk.get('var95Percent'), _num(stats.get('annualized_volatility'))
+    if var_pct is not None:
+        _amt = f' (USD {var_pct * gross / 100:,.0f} on gross exposure)' if gross else ''
+        downside = {'state':'info', 'label':f'1-day 95% loss {var_pct:.1f}%', 'tone':'neutral', 'detail':f'Historical one-day loss threshold{_amt}' + (f'; volatility {vol*100:.0f}% annualised.' if vol is not None else '.')}
+    else:
+        downside = {'state':'unknown', 'label':'Not assessed', 'tone':'neutral', 'detail':'Loss estimates were not supplied.'}
+    idea_inputs = [dict(inputs[0]), dict(inputs[1]), dict(inputs[2]), dict(key='downside', name='Downside', topic='risk', **downside)]
     # Plain-English "why" paragraph: the four inputs reconciled, no engine vocabulary.
     why = []
     why.append({'strong':'The pair is behaving normally', 'strained':'The relationship is under strain', 'broken':'The relationship has broken'}.get(health_in['state'], 'Relationship health is not assessed'))
@@ -314,9 +328,20 @@ def generate_html_report(
     else: why[-1] += ', with the spread near its reference.'
     if fund_in['state'] in ('for','against','neutral'):
         why.append({'for':'Fundamentals support the position', 'against':'Fundamentals lean the other way', 'neutral':'Fundamentals give no edge either way'}[fund_in['state']] + (f" with {stance['conviction'].lower()} conviction." if stance.get('conviction') else '.'))
-    if risk_in['state'] == 'stretched': why.append(f'The trade is already {abs(ret_pct):.0f}% {"down" if ret_pct < 0 else "up"} with a {dd_pct:.0f}% drawdown.')
-    elif risk_in['state'] in ('elevated','contained') and ret_pct is not None: why.append(f'Realised risk is {risk_in["state"]}: {ret_pct:+.0f}% over the sample, {dd_pct:.0f}% maximum drawdown.')
+    if risk_in['state'] == 'stretched': why.append(f'Held {window}, the position is {abs(ret_pct):.0f}% {"down" if ret_pct < 0 else "up"} with a {dd_pct:.0f}% drawdown along the way.')
+    elif risk_in['state'] in ('elevated','contained') and ret_pct is not None: why.append(f'Held {window}, the position is {ret_pct:+.0f}% with a {dd_pct:.0f}% maximum drawdown.')
     why.append({'Hold':'Nothing argues for adding and nothing argues for leaving.', 'Reduce':'Enough is pulling against the position to take some off.', 'Exit':'The case for holding no longer holds together.', 'Build':'The setup is as strong as this relationship offers.'}[verb])
+    _h = {'strong':'The pair is behaving normally', 'strained':'The relationship is under strain', 'broken':'The relationship has broken'}.get(health_in['state'], 'Relationship health is not assessed')
+    if stats_in['state'] == 'for': _h += f'; the spread is about {abs(z_last):.1f}σ against this direction, so the entry is on the cheap side.'
+    elif stats_in['state'] == 'against' and z_last is not None and z_last >= 0.75: _h += f'; the spread is already about {abs(z_last):.1f}σ in favour of this direction, so entering now is buying after the move.'
+    elif stats_in['state'] == 'against': _h += '; the spread is trending rather than reverting.'
+    else: _h += '; the spread sits near its reference, so there is no entry edge.'
+    idea_why = [_h]
+    if fund_in['state'] in ('for','against','neutral'): idea_why.append(why[1] if len(why) > 2 else '')
+    if ret_pct is not None and dd_pct is not None:
+        idea_why.append(f'This long/short has moved {ret_pct:+.0f}% {window}' + (f' with a {dd_pct:.0f}% drawdown along the way' if dd_pct >= 8 else '') + ('; that is the setup, not a loss.' if ret_pct < 0 else '; there is less left to recover.'))
+    idea_why.append('The bar for a new position is a healthy relationship, a spread beyond 2σ in its favour and fundamentals that do not argue against it' + (' — met today.' if idea_verb == 'Build' else ' — not met today.') + ' Net payoff after costs is not modelled; check it before committing capital.')
+    idea_summary = ' '.join(x for x in idea_why if x)
     verdict = {'verb':verb, 'ideaVerb':idea_verb, 'tone':{'Build':'positive','Hold':'neutral','Reduce':'negative','Exit':'broken'}[verb], 'summary':' '.join(why), 'rule':rule, 'engineDecision':action, 'engineRationale':rationale}
     next_review = _next_catalyst(memo_text, fund_text, after=asof)
     report = dict(
@@ -327,7 +352,8 @@ def generate_html_report(
             {'label':'Mean-reversion half-life', 'value':str(regime.get('halflife'))+' observations' if _num(regime.get('halflife')) is not None else 'Not supplied'}]},
         verdict=verdict, inputs=inputs,
         position={'headline':[verb], 'summary':verdict['summary'], 'label':'Decision: '+verb, 'assessment':verb, 'tone':verdict['tone'], 'basis':'Decision'},
-        newIdea={'headline':[idea_verb], 'summary':('The relationship is healthy and the spread is stretched against this direction with nothing arguing against it.' if idea_verb=='Build' else 'A new position needs a healthy relationship, a spread beyond 2σ in its favour and fundamentals that do not argue against it. That bar is not met today.') + ' Net payoff after costs is not modelled; check it before committing capital.', 'label':'New idea: '+idea_verb, 'assessment':idea_verb, 'tone':'positive' if idea_verb=='Build' else 'neutral'},
+        newIdea={'headline':[idea_verb], 'summary':idea_summary, 'label':'New idea: '+idea_verb, 'assessment':idea_verb, 'tone':'positive' if idea_verb=='Build' else 'neutral'},
+        ideaInputs=idea_inputs,
         opportunity={'assessed':False, 'summary':'Net payoff not modelled', 'detail':'The engine supplies a position decision, not a calibrated payoff forecast after trading, financing and borrowing costs. Historical returns and spread distance do not substitute for that forecast.'},
         drivers=drivers, conditions=conditions, risk=risk, nextReview=next_review,
         regime={'available':bool(regime), 'label':backdrop, 'summary':str(regime.get('strategy') or '')}, signals=signals,

@@ -333,6 +333,7 @@ async def analyze(
     from engine.memo import (
         generate_memo, fetch_pair_fundamentals, fetch_claude_fs_analysis,
         _classify_is_equity_pair, render_claude_fs_html, compute_deterministic_decision,
+        compute_fundamental_stance,
     )
     from engine.report import generate_html_report
     
@@ -540,6 +541,17 @@ async def analyze(
         enhanced_stats=memo_stats,
     )
     logger.info(f"Deterministic decision: {deterministic_decision['decision']} ({deterministic_decision['size_pct']}%)")
+
+    # Direction-blind fundamental stance from the metrics scorecard (equity pairs only).
+    # Computed here so GPT explains it rather than choosing it; swapping the legs flips it exactly.
+    fundamental_stance = None
+    if is_equity_pair and fundamental_data:
+        try:
+            fundamental_stance = compute_fundamental_stance(fundamental_data, portfolio.long_weights, portfolio.short_weights)
+            logger.info(f"Fundamental stance: {fundamental_stance['state']} ({fundamental_stance['conviction']}) wins={fundamental_stance['wins']}")
+        except Exception as e:
+            logger.warning(f"Fundamental stance failed: {e}")
+            fundamental_stance = None
     
     # =========================================================================
     # Step 10: Generate AI memo (DECISION BRIEF with FM signals)
@@ -565,6 +577,7 @@ async def analyze(
                 deterministic_decision=deterministic_decision,
                 is_equity_pair=is_equity_pair,
                 position_gross_exposure=float(portfolio.gross_exposure),
+                fundamental_stance=fundamental_stance,
             )
     
     # Step 11: Generate HTML report
@@ -627,6 +640,7 @@ async def analyze(
         position_gross_exposure=float(portfolio.gross_exposure),
         fundamental_data=fundamental_data,
         is_equity_pair=is_equity_pair,
+        fundamental_stance=fundamental_stance,
     )
     
     html_report = generate_html_report(**report_kwargs)
